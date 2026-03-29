@@ -1,0 +1,32 @@
+{
+  "kernel": "linear",
+  "C": 1.0,
+  "n_features": 14,
+  "feature_names": [
+    "packet_count",
+    "avg_packet_size",
+    "std_packet_size",
+    "flow_duration",
+    "avg_inter_arrival_time",
+    "tcp_flag_syn",
+    "tcp_flag_ack",
+    "tcp_flag_fin",
+    "tcp_flag_rst",
+    "tcp_flag_psh",
+    "unique_dst_ports",
+    "unique_src_ports",
+    "bytes_per_second",
+    "packets_per_second"
+  ],
+  "accuracy": 1.0,
+  "latency_us": {
+    "mean_us": 33.04158100581844,
+    "median_us": 29.406499834294664,
+    "p99_us": 105.06818935027691,
+    "max_us": 340.2980000828393,
+    "min_us": 25.661999643489253
+  },
+  "normal_samples": 10000,
+  "anomaly_samples": 1000,
+  "note": "Model trained on synthetic data. Replace with real traffic data for production."
+}

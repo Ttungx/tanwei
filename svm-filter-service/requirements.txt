@@ -1,0 +1,15 @@
+# Lightweight dependencies for SVM filter service
+# Memory constraint: 300MB total
+
+# FastAPI framework
+fastapi==0.109.0
+uvicorn==0.27.0
+pydantic==2.5.3
+
+# SVM and preprocessing (minimal scikit-learn)
+scikit-learn==1.4.0
+numpy==1.26.3
+joblib==1.3.2
+
+# HTTP client for health checks
+httpx==0.26.0
