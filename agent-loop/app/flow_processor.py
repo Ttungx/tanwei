@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Tuple
 import binascii
 
 import numpy as np
-from scapy.all import rdpcap, IP, TCP, UDP
+from scapy.all import IP, TCP, UDP
 from loguru import logger
 
 

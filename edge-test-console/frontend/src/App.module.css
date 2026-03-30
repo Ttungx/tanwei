@@ -1,0 +1,345 @@
+.app {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 32px;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top left, rgba(177, 62, 33, 0.16), transparent 32%),
+    radial-gradient(circle at 85% 18%, rgba(27, 69, 87, 0.18), transparent 26%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(240, 229, 210, 0.58));
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+
+.heroCopy,
+.heroPanel {
+  position: relative;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 28px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.heroCopy {
+  padding: 34px 36px 36px;
+}
+
+.heroCopy::after {
+  content: '';
+  position: absolute;
+  right: 28px;
+  top: 28px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(179, 74, 47, 0.18), rgba(179, 74, 47, 0) 72%);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.22em;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.eyebrow::before {
+  content: '';
+  width: 44px;
+  height: 1px;
+  background: currentColor;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.logo {
+  max-width: 10ch;
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 6vw, 5.3rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+  color: var(--color-ink);
+}
+
+.stateBadge {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(40, 38, 34, 0.18);
+  background: rgba(249, 246, 239, 0.82);
+  color: var(--color-ink-soft);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.subtitle {
+  max-width: 56ch;
+  margin-top: 20px;
+  font-size: 1.04rem;
+  line-height: 1.8;
+  color: var(--color-ink-soft);
+}
+
+.heroPanel {
+  padding: 28px;
+  overflow: hidden;
+}
+
+.heroPanel::before {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  border: 1px dashed rgba(40, 38, 34, 0.14);
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+.heroPanelLabel {
+  position: relative;
+  z-index: 1;
+  color: var(--color-ink-soft);
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.heroPanelStage {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+.heroPanelText {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: var(--color-ink-soft);
+}
+
+.metricRail {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.metricCard {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(247, 241, 231, 0.88);
+  border: 1px solid rgba(40, 38, 34, 0.1);
+}
+
+.metricLabel {
+  display: block;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.metricValue {
+  display: block;
+  margin-top: 10px;
+  font-size: 1rem;
+  color: var(--color-ink);
+}
+
+.heroFooter {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(40, 38, 34, 0.12);
+  color: var(--color-ink-soft);
+  font-size: 0.86rem;
+}
+
+.workspace {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.controlColumn,
+.resultColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sectionHeading {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.sectionIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(40, 38, 34, 0.16);
+  background: rgba(247, 241, 231, 0.78);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.sectionHeading h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.05;
+  color: var(--color-ink);
+}
+
+.sectionHeading p {
+  margin-top: 8px;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+}
+
+.statusSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.error {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(179, 74, 47, 0.09);
+  border: 1px solid rgba(179, 74, 47, 0.22);
+  color: #7a2b16;
+}
+
+.error strong {
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.error span {
+  line-height: 1.6;
+}
+
+.resetButton {
+  align-self: flex-start;
+  padding: 13px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: #f7f1e7;
+  font-size: 0.88rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  box-shadow: 0 14px 26px rgba(40, 38, 34, 0.18);
+}
+
+.resetButton:hover {
+  background: #1f1d1a;
+  transform: translateY(-1px);
+}
+
+.sideNote {
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: rgba(18, 56, 72, 0.1);
+  border: 1px solid rgba(18, 56, 72, 0.18);
+  color: var(--color-ink);
+  line-height: 1.7;
+}
+
+.sideNoteTag {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--color-accent-alt);
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1120px) {
+  .app {
+    padding: 22px;
+  }
+
+  .hero,
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .logo {
+    max-width: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .app {
+    padding: 16px;
+  }
+
+  .heroCopy,
+  .heroPanel {
+    padding: 22px 20px;
+    border-radius: 24px;
+  }
+
+  .titleRow {
+    flex-direction: column;
+  }
+
+  .metricRail {
+    grid-template-columns: 1fr;
+  }
+
+  .heroFooter {
+    flex-direction: column;
+  }
+}

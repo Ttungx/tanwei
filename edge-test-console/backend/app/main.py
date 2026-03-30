@@ -378,7 +378,7 @@ async def serve_index():
 async def serve_spa(path: str):
     """
     Serve SPA - return index.html for all unmatched routes
-    This enables Vue Router to handle client-side routing
+    This enables React Router to handle client-side routing
     """
     # Check if it's a static file request
     file_path = STATIC_DIR / path

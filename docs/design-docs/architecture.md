@@ -1,8 +1,14 @@
-# 探微 (Tanwei) - EdgeAgent 架构设计文档
+---
+name: architecture
+description: 四容器拓扑规范与通信边界约束
+type: project
+---
+
+# 探微 (Tanwei) 四容器拓扑与边界规范
 
 ## 1. 系统概述
 
-探微 (Tanwei) 是一个边缘智能体本地闭环仿真与测试系统，采用四容器微服务架构，用于在 WSL 环境下验证 EdgeAgent 的流量检测能力。
+探微 (Tanwei) 是一个边缘智能体本地闭环仿真与测试系统，采用四容器微服务架构，部署于网络节点旁路的独立边缘智能终端。
 
 ### 1.1 核心目标
 
@@ -14,28 +20,31 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    EdgeAgent 仿真四容器拓扑                       │
+│                    EdgeAgent 四容器拓扑                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   ┌─────────────────┐                                           │
 │   │ edge-test-console │ ◄── 用户上传 Pcap 文件                   │
-│   │ (Vue3 + FastAPI)  │                                         │
+│   │ (React + FastAPI) │     端口: 3000                           │
 │   └────────┬────────┘                                           │
-│            │ HTTP API                                           │
+│            │ HTTP API (唯一入口)                                 │
 │            ▼                                                     │
 │   ┌─────────────────┐      ┌─────────────────┐                  │
 │   │   agent-loop    │─────►│  llm-service    │                  │
 │   │   (核心大脑)     │      │ (Qwen3.5-0.8B)  │                  │
+│   │   端口: 8002    │      │   端口: 8080    │                  │
 │   └────────┬────────┘      └─────────────────┘                  │
 │            │                                                     │
 │            ▼                                                     │
 │   ┌─────────────────┐                                           │
 │   │svm-filter-service│ ◄── 微秒级二分类                          │
-│   │   (SVM 初筛)     │                                          │
+│   │   端口: 8001    │                                          │
 │   └─────────────────┘                                           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
 
 ## 2. 容器详细设计
 
@@ -49,9 +58,18 @@
 | **模型** | Qwen3.5-0.8B-Q4_K_M.gguf (~508MB) |
 
 **设计原则：**
-- 使用 C/C++ 编写的 llama.cpp，禁止 PyTorch/Transformers
-- 模拟真实路由器设备的极低资源消耗
+- 使用 C/C++ 编写的 llama.cpp，**绝对禁止** PyTorch/Transformers
+- 模拟真实边缘设备的极低资源消耗
 - 对外暴露 HTTP API 供 agent-loop 调用
+
+**调用示例：**
+```bash
+curl -X POST http://llm-service:8080/completion \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "...", "n_predict": 64}'
+```
+
+---
 
 ### 2.2 容器 2：前置轻量级过滤服务 (svm-filter-service)
 
@@ -66,6 +84,15 @@
 - 充当第一级漏斗，过滤 99% 高置信度正常流量
 - 微秒级响应延迟
 - 接收数值特征向量，返回二分类结果
+
+**调用示例：**
+```bash
+curl -X POST http://svm-filter-service:8001/api/classify \
+  -H "Content-Type: application/json" \
+  -d '{"features": {...}}'
+```
+
+---
 
 ### 2.3 容器 3：智能体主控程序 (agent-loop)
 
@@ -108,13 +135,15 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+---
+
 ### 2.4 容器 4：本地测试与可视化控制台 (edge-test-console)
 
 | 属性 | 规格 |
 |------|------|
 | **端口** | 3000 (外部访问) |
 | **内存限制** | 512MB |
-| **前端** | Vue 3 + Vite |
+| **前端** | React 18 + TypeScript + Vite |
 | **后端** | FastAPI (代理层) |
 
 **功能模块：**
@@ -124,29 +153,127 @@
    - 检测结果展示
    - 带宽压降对比图（原始 Pcap 大小 vs JSON 日志大小）
 
-## 3. 网络拓扑
+---
+
+## 3. 网络拓扑与通信边界
+
+### 3.1 网络配置
+
+```yaml
+# docker-compose.yml 网络配置
+networks:
+  tanwei-internal:
+    driver: bridge
+    internal: false  # 允许外部访问控制台
+```
+
+### 3.2 通信规则（强制单向调用）
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   Docker Network: tanwei-internal            │
+│                   允许的调用关系                              │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  [edge-test-console:3000] ──► [agent-loop:8002]            │
-│                                   │                         │
-│                    ┌──────────────┴──────────────┐         │
-│                    ▼                             ▼         │
-│           [svm-filter:8001]            [llm-service:8080]   │
+│  [edge-test-console:3000] ──► [agent-loop:8002]    ✅ 允许   │
+│  [agent-loop:8002] ──► [svm-filter:8001]            ✅ 允许   │
+│  [agent-loop:8002] ──► [llm-service:8080]           ✅ 允许   │
+│                                                             │
+│  [edge-test-console] ──► [svm-filter]              ❌ 禁止   │
+│  [edge-test-console] ──► [llm-service]              ❌ 禁止   │
+│  [svm-filter] ──► [llm-service]                     ❌ 禁止   │
+│  [svm-filter] ──► [agent-loop]                      ❌ 禁止   │
+│  [llm-service] ──► [任何服务]                       ❌ 禁止   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**通信规则：**
-- edge-test-console → agent-loop：允许
-- agent-loop → svm-filter-service：允许
-- agent-loop → llm-service：允许
-- **禁止跨级调用**：edge-test-console 不能直接调用 svm-filter-service 或 llm-service
+**Why:**
+- 单向调用链保证安全边界
+- 前端越权直接调用 SVM/LLM 会绕过主控的审计与截断机制
+- 防止内部服务被外部直接攻击
 
-## 4. 资源约束
+**How to apply:**
+- 在 docker-compose.yml 中通过 `depends_on` 和网络隔离实现
+- agent-loop 作为唯一入口点
+
+---
+
+## 4. 带外隐私通信
+
+### 4.1 数据输出约束
+
+EdgeAgent 输出给前端或云端的数据**绝对不能包含原始 Pcap 载荷**。
+
+**允许输出：**
+- 五元组信息 (src_ip, dst_ip, src_port, dst_port, protocol)
+- 疑似标签 (Malware, Botnet, C&C, DDoS 等)
+- Token 特征统计信息
+- 流元信息（包数、字节数、持续时间）
+- 置信度分数
+
+**禁止输出：**
+- 原始 Pcap 二进制数据
+- 应用层载荷内容（HTTP body, DNS query content 等）
+- 完整数据包十六进制转储
+
+### 4.2 JSON 输出结构
+
+```json
+{
+  "meta": {
+    "task_id": "uuid-string",
+    "timestamp": "2026-03-30T10:30:00Z",
+    "agent_version": "1.0.0",
+    "processing_time_ms": 1250
+  },
+  "statistics": {
+    "total_packets": 1500,
+    "total_flows": 150,
+    "normal_flows_dropped": 148,
+    "anomaly_flows_detected": 2,
+    "svm_filter_rate": "98.67%",
+    "bandwidth_reduction": "78.5%"
+  },
+  "threats": [
+    {
+      "id": "threat-001",
+      "five_tuple": {
+        "src_ip": "192.168.1.100",
+        "src_port": 54321,
+        "dst_ip": "10.0.0.1",
+        "dst_port": 443,
+        "protocol": "TCP"
+      },
+      "classification": {
+        "primary_label": "Malware",
+        "secondary_label": "Botnet",
+        "confidence": 0.92,
+        "model": "Qwen3.5-0.8B"
+      },
+      "flow_metadata": {
+        "start_time": "2026-03-30T10:29:30Z",
+        "end_time": "2026-03-30T10:30:00Z",
+        "packet_count": 10,
+        "byte_count": 5120,
+        "avg_packet_size": 512.0
+      },
+      "token_info": {
+        "token_count": 156,
+        "truncated": false
+      }
+    }
+  ],
+  "metrics": {
+    "original_pcap_size_bytes": 1048576,
+    "json_output_size_bytes": 225280,
+    "bandwidth_saved_percent": 78.5
+  }
+}
+```
+
+---
+
+## 5. 资源约束
 
 | 容器 | CPU | 内存 | 说明 |
 |------|-----|------|------|
@@ -157,9 +284,11 @@
 
 **总资源占用**：约 2.3GB 内存
 
-## 5. 关键依赖
+---
 
-### 5.1 TrafficLLM 集成
+## 6. 关键依赖
+
+### 6.1 TrafficLLM 集成
 
 - **路径**：`/root/anxun/TrafficLLM-master`
 - **使用模块**：
@@ -167,13 +296,15 @@
   - `preprocess/packet_data_preprocess.py` - 包级数据提取
   - `tokenization/traffic_tokenizer.py` - 流量分词器
 
-### 5.2 模型文件
+### 6.2 模型文件
 
 - **路径**：`/root/anxun/qwen3.5-0.8b/Qwen3.5-0.8B-Q4_K_M.gguf`
 - **大小**：532MB
 - **量化**：INT4 (Q4_K_M)
 
-## 6. 启动命令
+---
+
+## 7. 启动命令
 
 ```bash
 # 构建并启动所有服务
@@ -189,203 +320,16 @@ docker-compose logs -f agent-loop
 docker-compose down
 ```
 
-## 7. 数据流与处理细节
-
-### 7.1 Pcap 解析流程
-
-```
-Pcap 文件
-    │
-    ▼
-┌─────────────────┐
-│   scapy.rdpcap  │  读取原始包
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  五元组提取      │  IP/TCP/UDP 层解析
-│  FiveTuple      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  流重组          │  按 normalized five-tuple 分组
-│  FlowProcessor  │  双向流合并
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  双重截断        │  时间窗口 ≤ 60s
-│  truncate_flow  │  包数量 ≤ 10
-└─────────────────┘
-```
-
-### 7.2 特征提取（14 维向量）
-
-| 索引 | 特征名 | 类型 | 说明 |
-|------|--------|------|------|
-| 0 | packet_count | int | 流中包数量 |
-| 1 | avg_packet_size | float | 平均包大小（字节） |
-| 2 | std_packet_size | float | 包大小标准差 |
-| 3 | flow_duration | float | 流持续时间（秒） |
-| 4 | avg_inter_arrival_time | float | 平均包间隔时间 |
-| 5 | tcp_flag_syn | int | SYN 标志计数 |
-| 6 | tcp_flag_ack | int | ACK 标志计数 |
-| 7 | tcp_flag_fin | int | FIN 标志计数 |
-| 8 | tcp_flag_rst | int | RST 标志计数 |
-| 9 | tcp_flag_psh | int | PSH 标志计数 |
-| 10 | unique_dst_ports | int | 唯一目的端口数 |
-| 11 | unique_src_ports | int | 唯一源端口数 |
-| 12 | bytes_per_second | float | 每秒字节数 |
-| 13 | packets_per_second | float | 每秒包数 |
-
-### 7.3 跨模态分词格式
-
-```
-输入：流数据（十六进制）
-<pck>74707070<pck>70747470...
-
-输出：LLM 提示词
-Given the following traffic data <packet> that contains protocol fields,
-traffic features, and payloads. Please classify this traffic...
-
-Five-tuple: Source: 192.168.1.100:54321, Destination: 10.0.0.1:443, Protocol: TCP
-
-<packet>: <pck>74707070<pck>70747470...
-
-Classification:
-```
-
-### 7.4 JSON 输出结构
-
-```json
-{
-  "meta": {
-    "task_id": "uuid-string",
-    "timestamp": "2026-03-29T10:30:00Z",
-    "agent_version": "1.0.0",
-    "processing_time_ms": 1250
-  },
-  "statistics": {
-    "total_packets": 1500,
-    "total_flows": 150,
-    "normal_flows_dropped": 148,
-    "anomaly_flows_detected": 2,
-    "svm_filter_rate": "98.67%",
-    "bandwidth_reduction": "78.5%"
-  },
-  "threats": [...],
-  "metrics": {
-    "original_pcap_size_bytes": 1048576,
-    "json_output_size_bytes": 225280,
-    "bandwidth_saved_percent": 78.5
-  }
-}
-```
-
 ---
 
-## 8. 技术选型理由
-
-### 8.1 为什么选择 llama.cpp？
-
-| 考量因素 | llama.cpp | PyTorch/Transformers |
-|----------|-----------|---------------------|
-| 内存占用 | ~500MB | >2GB |
-| 启动时间 | <5s | >30s |
-| 依赖大小 | ~100MB | >1GB |
-| CPU 推理 | 优化 | 较慢 |
-| 边缘适用性 | ✅ 优秀 | ❌ 不适合 |
-
-### 8.2 为什么选择 SVM 而非深度学习？
-
-| 考量因素 | SVM | 深度学习 |
-|----------|-----|---------|
-| 推理延迟 | <1ms | >10ms |
-| 内存占用 | <10MB | >100MB |
-| 训练数据需求 | 少量 | 大量 |
-| 可解释性 | ✅ 高 | ❌ 低 |
-| 边缘部署 | ✅ 简单 | ❌ 复杂 |
-
-### 8.3 为什么选择 FastAPI？
-
-- **异步支持**：原生支持 async/await，适合 I/O 密集型任务
-- **自动文档**：内置 Swagger UI，无需额外维护
-- **类型验证**：Pydantic 集成，自动请求验证
-- **性能优秀**：基于 Starlette，性能接近 Go
-
----
-
-## 9. 安全设计
-
-### 9.1 网络隔离
-
-```yaml
-# docker-compose.yml 网络配置
-networks:
-  tanwei-internal:
-    driver: bridge
-    internal: false  # 允许外部访问控制台
-```
-
-### 9.2 访问控制
-
-- **LLM 服务**：仅允许 agent-loop 访问
-- **SVM 服务**：仅允许 agent-loop 访问
-- **Agent 服务**：仅允许 edge-test-console 访问
-- **控制台**：对外开放
-
-### 9.3 数据安全
-
-- 模型文件只读挂载 (`:ro`)
-- 上传文件隔离存储
-- 无敏感信息日志记录
-
----
-
-## 10. 扩展性设计
-
-### 10.1 水平扩展
-
-```yaml
-# 增加工作节点
-agent-loop:
-  deploy:
-    replicas: 3
-```
-
-### 10.2 模型替换
-
-```yaml
-# 替换为其他 GGUF 模型
-llm-service:
-  volumes:
-    - ./models/your-model.gguf:/models/model.gguf:ro
-  command: --model /models/model.gguf ...
-```
-
-### 10.3 添加新检测器
-
-在 agent-loop 中注册新的检测服务：
-
-```python
-# 在 flow_processor.py 中添加
-DETECTOR_REGISTRY = {
-    "svm": svm_filter,
-    "rule": rule_filter,  # 新增规则引擎
-    "stat": stat_filter,  # 新增统计检测
-}
-```
-
----
-
-## 11. 版本信息
+## 8. 版本信息
 
 - **项目阶段**：第一阶段（本地单节点验证）
-- **创建日期**：2026-03-29
+- **架构变更日期**：2026-03-30
 - **维护者**：探微架构团队
 - **技术栈版本**：
   - Python: 3.10
   - FastAPI: 0.109.0
-  - Vue: 3.4.21
+  - React: 18.3.1
+  - TypeScript: 5.6
   - llama.cpp: latest

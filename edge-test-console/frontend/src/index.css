@@ -1,0 +1,64 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --color-bg: #efe6d8;
+  --color-surface: rgba(255, 250, 243, 0.88);
+  --color-border-strong: rgba(52, 44, 36, 0.14);
+  --color-ink: #282622;
+  --color-ink-soft: #695f54;
+  --color-accent: #b34a2f;
+  --color-accent-alt: #123848;
+  --shadow-panel: 0 22px 42px rgba(67, 55, 37, 0.12);
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Source Han Serif SC", "Noto Serif SC", serif;
+  --font-body: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+html {
+  min-height: 100%;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 243, 0.9), rgba(239, 230, 216, 0.94));
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.35), transparent 45%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(40, 38, 34, 0.02),
+      rgba(40, 38, 34, 0.02) 1px,
+      transparent 1px,
+      transparent 28px
+    ),
+    var(--color-bg);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(179, 74, 47, 0.5);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(179, 74, 47, 0.18);
+}
+
+#root {
+  min-height: 100vh;
+}

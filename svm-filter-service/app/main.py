@@ -2,7 +2,7 @@
 SVM Filter Service - Main Application
 First-stage traffic filter with microsecond-level latency
 
-API Spec: /root/anxun/docs/API_SPEC.md
+API Spec: /root/anxun/docs/references/api_specs.md
 """
 
 import time

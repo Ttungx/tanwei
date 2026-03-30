@@ -1,3 +1,9 @@
+---
+name: api-specs
+description: 服务间 API 接口规范
+type: reference
+---
+
 # 探微 (Tanwei) - API 接口规范
 
 ## 1. 服务间通信概览
@@ -7,6 +13,8 @@ edge-test-console ──► agent-loop ──► svm-filter-service
                            │
                            └──► llm-service
 ```
+
+---
 
 ## 2. API 详细规范
 
@@ -74,7 +82,7 @@ file: <pcap_file>
       },
       "label": "Malware",
       "confidence": 0.92,
-      "timestamp": "2026-03-29T10:30:00Z"
+      "timestamp": "2026-03-30T10:30:00Z"
     }
   ],
   "metrics": {
@@ -234,7 +242,7 @@ agent-loop 返回给 edge-test-console 的最终 JSON 格式：
 {
   "meta": {
     "task_id": "uuid-string",
-    "timestamp": "2026-03-29T10:30:00Z",
+    "timestamp": "2026-03-30T10:30:00Z",
     "agent_version": "1.0.0",
     "processing_time_ms": 1250
   },
@@ -263,8 +271,8 @@ agent-loop 返回给 edge-test-console 的最终 JSON 格式：
         "model": "Qwen3.5-0.8B"
       },
       "flow_metadata": {
-        "start_time": "2026-03-29T10:29:30Z",
-        "end_time": "2026-03-29T10:30:00Z",
+        "start_time": "2026-03-30T10:29:30Z",
+        "end_time": "2026-03-30T10:30:00Z",
         "packet_count": 10,
         "byte_count": 5120,
         "avg_packet_size": 512.0
@@ -322,3 +330,22 @@ curl -X POST http://llm-service:8080/completion \
   -H "Content-Type: application/json" \
   -d '{"prompt": "...", "n_predict": 64}'
 ```
+
+---
+
+## 7. 端口汇总
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| edge-test-console | 3000 | Web 控制台（对外开放） |
+| agent-loop | 8002 | 主控程序 |
+| svm-filter-service | 8001 | SVM 过滤服务 |
+| llm-service | 8080 | LLM 推理服务 |
+
+---
+
+## 8. 版本信息
+
+- **API 版本**：1.0.0
+- **更新日期**：2026-03-30
+- **维护者**：探微架构团队

@@ -1,8 +1,6 @@
 # 探微 (Tanwei) - EdgeAgent 本地闭环仿真系统
 # 四容器微服务架构编排配置
 
-version: '3.8'
-
 services:
   # ============================================================
   # 容器 1：LLM 推理引擎 (llm-service)
@@ -10,7 +8,9 @@ services:
   # 技术栈：llama.cpp server 模式（C/C++，极低资源消耗）
   # ============================================================
   llm-service:
-    image: ghcr.io/ggerganov/llama.cpp:server
+    build:
+      context: ./llm-service
+      dockerfile: Dockerfile
     container_name: tanwei-llm-service
     ports:
       - "8080:8080"
