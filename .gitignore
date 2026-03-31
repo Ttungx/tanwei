@@ -12,6 +12,7 @@ qwen3.5-0.8b/
 
 # TrafficLLM source (external dependency)
 TrafficLLM-master/
+data/tran_data
 
 # Uploaded files and test data
 agent-loop/uploads/
