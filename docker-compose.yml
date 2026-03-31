@@ -32,7 +32,7 @@ services:
           memory: 512M
     networks:
       - tanwei-internal
-    restart: unless-stopped
+    restart: "no"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -64,7 +64,7 @@ services:
           memory: 128M
     networks:
       - tanwei-internal
-    restart: unless-stopped
+    restart: "no"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
@@ -104,7 +104,7 @@ services:
           memory: 256M
     networks:
       - tanwei-internal
-    restart: unless-stopped
+    restart: "no"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
       interval: 30s
@@ -136,7 +136,7 @@ services:
           memory: 256M
     networks:
       - tanwei-internal
-    restart: unless-stopped
+    restart: "no"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
