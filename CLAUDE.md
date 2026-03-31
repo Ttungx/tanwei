@@ -74,6 +74,7 @@ docs/
 └── references/               # 参考手册
     ├── api_specs.md          # API 规范
     ├── deployment.md         # 部署指南
+    ├── dataset-feature-engineering.md  # 数据集与特征工程
     └── harness-engineering.md  # Harness 方法论
 ```
 

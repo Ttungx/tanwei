@@ -35,7 +35,7 @@ type: project
 - [x] **svm-filter-service 模型训练**
   - [x] 使用合成数据训练 SVM 模型
   - [x] 导出预训练模型到 `models/saved/`
-  - [ ] 使用真实数据集（CICIDS2017/UNSW-NB15）训练提升准确率
+  - [x] 使用真实数据集（TrafficLLM: DAPT, CSIC, ISCX, USTC 混合）训练提升准确率
 
 - [x] **edge-test-console 前端开发**
   - [x] React 18 + TypeScript 项目初始化
@@ -79,6 +79,7 @@ type: project
 
 ## 更新日志
 
+- **2026-03-31**: SVM 模型升级为 32 维特征，使用 TrafficLLM 多数据集联合训练（DAPT, CSIC, ISCX-Botnet, USTC-TFC）
 - **2026-03-30**: 第一里程碑完成，四容器架构全部实现
 - **2026-03-30**: 架构变更，从路由器部署迁移至独立边缘终端
 - **2026-03-29**: 项目初始化，四容器架构设计完成

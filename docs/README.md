@@ -18,6 +18,7 @@ docs/
 └── references/           # 参考手册
     ├── api_specs.md      # API 接口规范
     ├── deployment.md     # 部署指南
+    ├── dataset-feature-engineering.md  # TrafficLLM 数据集与 SVM 特征工程
     └── harness-engineering.md  # Harness 工程方法论
 ```
 

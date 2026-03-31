@@ -98,6 +98,10 @@ file: <pcap_file>
 
 ### 2.2 agent-loop → svm-filter-service
 
+> **注意**: 当前 API 定义使用 14 维特征向量（历史版本）。实际部署的 SVM 模型已升级为 32 维特征。
+> 详细特征定义请参考 `docs/references/dataset-feature-engineering.md`。
+> 此 API 规范将在后续版本中更新以支持 32 维特征。
+
 #### POST /api/classify
 
 **描述**：对流量特征向量进行二分类

@@ -6,7 +6,7 @@
 2026年3月30日 23点01分 更新后待测试
 
 ## 近期
-svm模型训练：使用trafficllm提供的数据集快速训练
+[x] svm模型训练：使用trafficllm提供的数据集快速训练
 
 ## 后期 | 难度
-语言微调：基于trafficllm框架训练qwen3.5-0.8b
+[ ] 语言微调：基于trafficllm框架训练qwen3.5-0.8b

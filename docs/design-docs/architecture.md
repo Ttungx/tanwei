@@ -141,7 +141,7 @@ curl -X POST http://svm-filter-service:8001/api/classify \
 
 | 属性 | 规格 |
 |------|------|
-| **端口** | 3000 (外部访问) |
+| **端口** | 3000 (外部访问，映射自容器内 8000) |
 | **内存限制** | 512MB |
 | **前端** | React 18 + TypeScript + Vite |
 | **后端** | FastAPI (代理层) |
