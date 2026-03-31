@@ -21,7 +21,7 @@
 - 🔍 **四级漏斗过滤**：SVM 微秒级初筛 + LLM 深度推理
 - 📉 **带宽压降 > 70%**：原始流量 → JSON 威胁情报
 - 🧠 **边缘模型**：Qwen3.5-0.8B INT4 量化，CPU 推理
-- 🖥️ **可视化控制台**：Vue 3 前端 + 实时流水线状态
+- 🖥️ **可视化控制台**：React 18 前端 + 实时流水线状态
 
 ---
 
@@ -94,7 +94,7 @@ curl http://localhost:8080/health
 
 | 容器 | 端口 | 内存 | 技术栈 | 功能 |
 |------|------|------|--------|------|
-| edge-test-console | 3000 | 512MB | Vue 3 + FastAPI | Web 控制台 |
+| edge-test-console | 3000 | 512MB | React 18 + FastAPI | Web 控制台 |
 | agent-loop | 8002 | 500MB | FastAPI + scapy | 核心大脑 |
 | svm-filter-service | 8001 | 300MB | FastAPI + sklearn | SVM 初筛 |
 | llm-service | 8080 | 1GB | llama.cpp | LLM 推理 |
@@ -106,10 +106,12 @@ curl http://localhost:8080/health
 | 文档 | 说明 |
 |------|------|
 | [docs/README.md](docs/README.md) | 完整项目文档 |
-| [docs/QUICKSTART.md](docs/QUICKSTART.md) | 快速启动指南 |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构设计文档 |
-| [docs/API_SPEC.md](docs/API_SPEC.md) | API 接口规范 |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署指南 |
+| [docs/design-docs/architecture.md](docs/design-docs/architecture.md) | 架构设计文档 |
+| [docs/references/api_specs.md](docs/references/api_specs.md) | API 接口规范 |
+| [docs/references/deployment.md](docs/references/deployment.md) | 部署指南 |
+| [docs/references/dataset-feature-engineering.md](docs/references/dataset-feature-engineering.md) | 数据集与特征工程 |
+| [docs/exec-plans/active-plan.md](docs/exec-plans/active-plan.md) | 当前执行计划 |
+| [docs/exec-plans/tech-debt.md](docs/exec-plans/tech-debt.md) | 技术债务追踪 |
 
 ---
 
@@ -122,14 +124,18 @@ curl http://localhost:8080/health
 ├── README.md                   # 本文档
 │
 ├── docs/                       # 文档目录
+│   ├── design-docs/            # 架构设计
+│   ├── exec-plans/             # 执行计划与技术债
+│   └── references/             # API 规范与部署指南
 │
 ├── llm-service/                # 容器1: LLM 推理引擎
 ├── svm-filter-service/         # 容器2: SVM 过滤服务
 ├── agent-loop/                 # 容器3: 智能体主控
 ├── edge-test-console/          # 容器4: 测试控制台
 │
-├── TrafficLLM-master/          # TrafficLLM 依赖
-└── qwen3.5-0.8b/               # 边缘基座模型
+├── TrafficLLM-master/          # TrafficLLM 依赖 (外部)
+├── qwen3.5-0.8b/               # 边缘基座模型 (外部)
+└── data/                       # 数据与训练集
 ```
 
 ---
@@ -152,7 +158,7 @@ GET /api/result/{task_id}
 Response: { "threats": [...], "metrics": {...} }
 ```
 
-详细 API 规范请参阅 [API_SPEC.md](docs/API_SPEC.md)。
+详细 API 规范请参阅 [api_specs.md](docs/references/api_specs.md)。
 
 ---
 

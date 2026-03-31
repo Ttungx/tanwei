@@ -130,6 +130,7 @@ features_dict = {"packet_count": 10, ...}
 
 ## 更新日志
 
+- **2026-03-31**: README.md 文档园艺完成，修复技术栈描述（Vue 3 → React 18），更新文档链接指向正确的 Harness Engineering 结构
 - **2026-03-31**: TD-002 已修复，使用 TrafficLLM 多数据集联合训练 SVM 模型（32维特征）
 - **2026-03-30**: TD-001 已修复，改用 PcapReader 流式读取
 - **2026-03-30**: 初始化技术债务文档，记录 TD-001 ~ TD-005
