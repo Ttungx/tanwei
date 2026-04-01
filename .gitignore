@@ -17,8 +17,6 @@ data/tran_data
 # Uploaded files and test data
 agent-loop/uploads/
 data/test_traffic/
-*.pcap
-*.pcapng
 
 # ============================================================
 # Python
