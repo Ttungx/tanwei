@@ -5,9 +5,14 @@
 
 import os
 import sys
+from pathlib import Path
 from typing import List, Optional, Tuple
 
-from loguru import logger
+# 添加共享模块路径
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.log_config import get_agent_loop_logger
+
+logger = get_agent_loop_logger()
 
 # 添加 TrafficLLM 路径
 TRAFFICLLM_PATH = os.environ.get("TRAFFICLLM_PATH", "/app/TrafficLLM")

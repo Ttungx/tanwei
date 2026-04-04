@@ -8,12 +8,12 @@
 
 在执行任何开发任务前，**必须**按以下顺序阅读文档：
 
-| 行为 | 必读文档 |
-|------|----------|
-| 编写/修改代码 | `docs/design-docs/architecture.md` |
-| 处理流量特征 | `docs/design-docs/traffic-tokenization.md` |
-| 查看当前任务 | `docs/exec-plans/active-plan.md` |
-| 调用内部 API | `docs/references/api_specs.md` |
+| 行为          | 必读文档                                   |
+| ------------- | ------------------------------------------ |
+| 编写/修改代码 | `docs/design-docs/architecture.md`         |
+| 处理流量特征  | `docs/design-docs/traffic-tokenization.md` |
+| 查看当前任务  | `docs/exec-plans/active-plan.md`           |
+| 调用内部 API  | `docs/references/api_specs.md`             |
 
 ---
 
@@ -25,7 +25,7 @@ TrafficLLM 分词器:  /root/anxun/TrafficLLM-master
 ```
 
 ---
-
+ 
 ## 架构约束红线
 
 1. **依赖方向**：edge-test-console → agent-loop → svm-filter / llm-service

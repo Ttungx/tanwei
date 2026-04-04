@@ -12,19 +12,24 @@ API 端点：
 import asyncio
 import json
 import os
+import sys
 import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 import aiofiles
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
-from loguru import logger
 from pydantic import BaseModel
+
+# 添加共享模块路径
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.log_config import get_agent_loop_logger
 
 from flow_processor import FlowProcessor, Flow
 from traffic_tokenizer import TrafficTokenizer
@@ -49,12 +54,7 @@ AGENT_VERSION = "1.0.0"
 # 日志配置
 # ============================================================
 
-logger.remove()
-logger.add(
-    sink=lambda msg: print(msg, end=""),
-    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    level=os.environ.get("LOG_LEVEL", "INFO")
-)
+logger = get_agent_loop_logger()
 
 
 # ============================================================

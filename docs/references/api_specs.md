@@ -98,32 +98,46 @@ file: <pcap_file>
 
 ### 2.2 agent-loop → svm-filter-service
 
-> **注意**: 当前 API 定义使用 14 维特征向量（历史版本）。实际部署的 SVM 模型已升级为 32 维特征。
-> 详细特征定义请参考 `docs/references/dataset-feature-engineering.md`。
-> 此 API 规范将在后续版本中更新以支持 32 维特征。
-
 #### POST /api/classify
 
 **描述**：对流量特征向量进行二分类
 
-**请求**：
+**请求** (32 维特征向量，详见 `docs/references/dataset-feature-engineering.md`)：
 ```json
 {
   "features": {
-    "packet_count": 10,
-    "avg_packet_size": 512.5,
-    "std_packet_size": 128.3,
-    "flow_duration": 30.5,
-    "avg_inter_arrival_time": 3.05,
-    "tcp_flag_syn": 1,
-    "tcp_flag_ack": 8,
-    "tcp_flag_fin": 0,
-    "tcp_flag_rst": 0,
-    "tcp_flag_psh": 5,
-    "unique_dst_ports": 1,
-    "unique_src_ports": 1,
-    "bytes_per_second": 168.2,
-    "packets_per_second": 0.33
+    "avg_packet_len": 512.5,
+    "std_packet_len": 128.3,
+    "avg_ip_len": 500.0,
+    "std_ip_len": 120.5,
+    "avg_tcp_len": 460.0,
+    "std_tcp_len": 110.2,
+    "total_bytes": 5120.0,
+    "avg_ttl": 64.0,
+    "ip_proto": 6,
+    "tcp_ratio": 1.0,
+    "udp_ratio": 0.0,
+    "other_proto_ratio": 0.0,
+    "avg_window_size": 65535.0,
+    "std_window_size": 0.0,
+    "syn_count": 1,
+    "ack_count": 8,
+    "push_count": 5,
+    "fin_count": 0,
+    "rst_count": 0,
+    "avg_hdr_len": 32.0,
+    "total_duration": 30.5,
+    "avg_inter_arrival": 3.05,
+    "std_inter_arrival": 1.2,
+    "packet_rate": 0.33,
+    "src_port_entropy": 54321.0,
+    "dst_port_entropy": 443.0,
+    "well_known_port_ratio": 1.0,
+    "high_port_ratio": 0.0,
+    "unique_dst_ip_count": 1,
+    "internal_ip_ratio": 0.0,
+    "df_flag_ratio": 0.5,
+    "avg_ip_id": 0.5
   }
 }
 ```
@@ -144,6 +158,19 @@ file: <pcap_file>
 | label | string | "normal" 或 "anomaly" |
 | confidence | float | 置信度 (0.0-1.0) |
 | latency_ms | float | 推理延迟（毫秒） |
+
+**特征维度说明** (32 维)：
+
+| 类别 | 索引 | 特征名 | 说明 |
+|------|------|--------|------|
+| A. 基础统计 | 0-7 | avg_packet_len, std_packet_len, ... | 包长度统计、TTL 等 |
+| B. 协议类型 | 8-11 | ip_proto, tcp_ratio, ... | 协议分布 |
+| C. TCP 行为 | 12-19 | avg_window_size, syn_count, ... | TCP 标志与窗口 |
+| D. 时间特征 | 20-23 | total_duration, packet_rate, ... | 时间统计 |
+| E. 端口特征 | 24-27 | src_port_entropy, well_known_port_ratio, ... | 端口分布 |
+| F. 地址特征 | 28-31 | unique_dst_ip_count, internal_ip_ratio, ... | IP 地址特征 |
+
+详细特征定义请参考 `docs/references/dataset-feature-engineering.md`。
 
 ---
 

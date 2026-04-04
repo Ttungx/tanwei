@@ -4,6 +4,7 @@ Edge Test Console - FastAPI Backend
 """
 
 import os
+import sys
 import uuid
 import asyncio
 import aiofiles
@@ -17,6 +18,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+# 添加共享模块路径
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from shared.log_config import get_edge_console_logger
+
+# 初始化日志
+logger = get_edge_console_logger()
 
 # Configuration
 AGENT_LOOP_URL = os.getenv("AGENT_LOOP_URL", "http://agent-loop:8002")
@@ -67,6 +75,8 @@ async def process_detection(task_id: str, file_path: Path, original_size: int):
         tasks[task_id]["progress"] = 10
         tasks[task_id]["message"] = "正在提取五元组、重组流"
 
+        logger.info(f"[Task {task_id}] Starting detection, file_size={original_size}")
+
         # Send file to agent-loop
         async with aiofiles.open(file_path, "rb") as f:
             file_content = await f.read()
@@ -82,6 +92,7 @@ async def process_detection(task_id: str, file_path: Path, original_size: int):
         # Call agent-loop detect API
         try:
             files = {"file": (file_path.name, file_content, "application/vnd.tcpdump.pcap")}
+            logger.debug(f"[Task {task_id}] Calling agent-loop at {AGENT_LOOP_URL}")
             response = requests.post(
                 f"{AGENT_LOOP_URL}/api/detect",
                 files=files,
@@ -93,6 +104,7 @@ async def process_detection(task_id: str, file_path: Path, original_size: int):
             # Update task with agent-loop task_id for status polling
             agent_task_id = result.get("task_id")
             tasks[task_id]["agent_task_id"] = agent_task_id
+            logger.info(f"[Task {task_id}] Agent-loop task created: {agent_task_id}")
 
             # Poll for status from agent-loop
             max_attempts = 120  # 2 minutes max
@@ -132,15 +144,18 @@ async def process_detection(task_id: str, file_path: Path, original_size: int):
                         timeout=10
                     )
                     tasks[task_id]["result"] = result_response.json()
+                    logger.info(f"[Task {task_id}] Detection completed successfully")
                     break
                 elif stage == "failed":
                     tasks[task_id]["error"] = status_data.get("error", "Unknown error")
+                    logger.error(f"[Task {task_id}] Detection failed: {tasks[task_id]['error']}")
                     break
 
                 await asyncio.sleep(1)
 
         except requests.exceptions.RequestException as e:
             # For demo purposes, generate mock result if agent-loop is not available
+            logger.warning(f"[Task {task_id}] Agent-loop unavailable, using mock result: {e}")
             tasks[task_id]["stage"] = "llm_inference"
             tasks[task_id]["progress"] = 75
             tasks[task_id]["message"] = "大模型正在进行 Token 推理"
@@ -158,10 +173,12 @@ async def process_detection(task_id: str, file_path: Path, original_size: int):
         tasks[task_id]["stage"] = "failed"
         tasks[task_id]["error"] = str(e)
         tasks[task_id]["message"] = f"检测失败: {str(e)}"
+        logger.exception(f"[Task {task_id}] Detection failed with exception")
     finally:
         # Cleanup uploaded file
         if file_path.exists():
             file_path.unlink()
+            logger.debug(f"[Task {task_id}] Cleaned up uploaded file")
 
 
 def generate_mock_result(task_id: str, original_size: int) -> Dict[str, Any]:
@@ -260,6 +277,14 @@ async def health_check():
     }
 
 
+@app.on_event("startup")
+async def startup_event():
+    """Log startup information"""
+    logger.info("Edge Test Console starting up...")
+    logger.info(f"Agent Loop URL: {AGENT_LOOP_URL}")
+    logger.info(f"Upload Directory: {UPLOAD_DIR}")
+
+
 @app.post("/api/detect", response_model=DetectionResponse)
 async def detect_pcap(
     background_tasks: BackgroundTasks,
@@ -270,9 +295,11 @@ async def detect_pcap(
     """
     # Validate file
     if not file.filename:
+        logger.warning("Upload rejected: no filename provided")
         raise HTTPException(status_code=400, detail="No file provided")
 
     if not file.filename.lower().endswith(('.pcap', '.pcapng')):
+        logger.warning(f"Upload rejected: invalid format - {file.filename}")
         raise HTTPException(
             status_code=400,
             detail="Invalid file format. Only .pcap and .pcapng files are accepted"
@@ -289,6 +316,8 @@ async def detect_pcap(
         content = await file.read()
         original_size = len(content)
         await f.write(content)
+
+    logger.info(f"Task created: {task_id}, file={file.filename}, size={original_size} bytes")
 
     # Initialize task
     tasks[task_id] = {
