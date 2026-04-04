@@ -17,6 +17,8 @@ The redesign keeps the current product capability unchanged:
 
 The work is a frontend-only restructuring. It must preserve the existing API contract and avoid introducing large UI, charting, animation, or state-management dependencies.
 
+In addition to operational usability, the frontend should present the project as a complete technical work. The UI should naturally surface problem context, system approach, quantitative evidence, and engineering completeness through product-native language.
+
 ## Goals
 
 1. Replace the current showcase-like single page with a true desktop console shell.
@@ -25,9 +27,10 @@ The work is a frontend-only restructuring. It must preserve the existing API con
    - upload workspace
    - pipeline tracking
    - result archive
-3. Centralize visual tokens so the application follows the `console-design` system consistently.
-4. Isolate API integration from presentation so future UI changes do not require touching every render branch.
-5. Keep the dependency surface minimal by using the existing `React + TypeScript + Vite + CSS Modules` stack only.
+3. Add a natural product-facing presentation layer that explains the system's value, architecture, evidence, and deployment shape without breaking the console workflow.
+4. Centralize visual tokens so the application follows the `console-design` system consistently.
+5. Isolate API integration from presentation so future UI changes do not require touching every render branch.
+6. Keep the dependency surface minimal by using the existing `React + TypeScript + Vite + CSS Modules` stack only.
 
 ## Non-goals
 
@@ -57,7 +60,7 @@ These functions remain the only network entry points for the redesign.
 
 ## User Experience Direction
 
-The target UI should feel like a polished internal operations console rather than a landing page or marketing panel.
+The target UI should feel like a polished internal operations console with an integrated product overview layer, rather than a landing page or marketing panel.
 
 Required visual characteristics:
 
@@ -66,6 +69,7 @@ Required visual characteristics:
 - Soft bordered cards with subtle shadows
 - Sticky shell elements for navigation and context
 - A bento-style overview area for summary metrics
+- A structured overview mode that explains the system itself
 - A floating action bar for repeated actions
 - Purposeful motion only: hover lift, section fade, small transitions
 
@@ -76,7 +80,20 @@ Signature gestures selected for this page:
 
 ## Information Architecture
 
-The application remains a single-page workflow, but the shell should make it feel like a structured console.
+The application remains a single-page workflow, but the shell should make it feel like a structured console with two presentation modes.
+
+### Mode Switch
+
+The shell should expose two local modes in the top navigation or header tabs:
+
+- `方案概览`
+- `控制台`
+
+This is a local presentation switch, not route-based navigation. The wording should remain product-natural and should read like a normal product surface rather than an externally tailored presentation.
+
+`方案概览` exists to help a first-time viewer quickly understand what the system does, why the hybrid pipeline matters, and what evidence supports the approach.
+
+`控制台` remains the operational workspace for upload, processing, and result inspection.
 
 ### Left Sidebar
 
@@ -104,9 +121,43 @@ The top bar surfaces system context without taking over core business logic.
 
 ### Main Workspace
 
+The content area changes based on the active mode.
+
+#### A. `方案概览`
+
+This mode should read like a concise technical product narrative rather than a slide deck.
+
+Recommended sections:
+
+1. Value and scenario
+   - what traffic problem is being handled
+   - why edge-side pre-filtering matters
+   - why a staged pipeline is better than sending everything to deep analysis
+
+2. Detection pipeline
+   - `Pcap -> Flow Reconstruction -> SVM Filtering -> LLM Inference -> Threat Archive`
+   - one-sentence input/output description per stage
+
+3. Evidence
+   - real metrics already available from the backend result payload
+   - bandwidth reduction
+   - anomaly count
+   - processing duration
+   - candidate flow shrinkage where derivable from existing fields
+
+4. System composition
+   - edge test console
+   - backend detection service split
+   - task execution flow
+   - runtime or version metadata where already available
+
+This mode must avoid fabricated benchmark claims. It may only present evidence that is either returned by the backend or can be truthfully derived from returned fields.
+
+#### B. `控制台`
+
 The content area is split into three major vertical sections.
 
-#### 1. Overview Hero
+##### 1. Overview Hero
 
 Purpose:
 
@@ -130,7 +181,7 @@ State behavior:
 - completed: show anomaly count, bandwidth saved, processing duration
 - failed: show failure state without assuming result data exists
 
-#### 2. Detection Workspace
+##### 2. Detection Workspace
 
 A two-column operational zone.
 
@@ -150,7 +201,7 @@ Right column:
 
 This section is the active work area while a task is being submitted or processed.
 
-#### 3. Result Archive
+##### 3. Result Archive
 
 Purpose:
 
@@ -193,6 +244,7 @@ Suggested shell-level components:
 - `ConsoleShell`
 - `SidebarNav`
 - `Topbar`
+- `ModeSwitch`
 - `FloatingActionBar`
 
 Responsibilities:
@@ -206,6 +258,7 @@ Responsibilities:
 
 Suggested workflow components:
 
+- `SolutionOverview`
 - `OverviewHero`
 - `UploadWorkspace`
 - `PipelinePanel`
@@ -230,6 +283,7 @@ Responsibilities:
 Examples:
 
 - top bar badge text
+- mode-specific summary cards
 - overview metric triplets
 - stage presentation metadata
 - result summary cards
@@ -285,6 +339,25 @@ The UI must explicitly support these combinations:
 
 No view may assume `result` exists unless it is already validated.
 
+### Evidence Rules
+
+The presentation layer may add explanatory sections and derived metrics, but it must not invent claims that the current system cannot support.
+
+Allowed:
+
+- ratios derived from existing statistics
+- bandwidth reduction derived from existing result fields
+- process descriptions based on the actual backend pipeline
+- service composition descriptions grounded in the repository structure
+
+Not allowed unless backed by real data already available in the project:
+
+- accuracy
+- recall
+- F1 score
+- benchmark comparisons against unnamed baselines
+- exaggerated production claims
+
 ## Visual System Integration
 
 ### Token Layer
@@ -310,6 +383,7 @@ Modules consume these tokens instead of defining standalone color systems.
 - shell grid
 - sidebar width
 - sticky top bar behavior
+- mode switch layout
 - content column spacing
 - section-level desktop layout
 - floating action bar placement
@@ -380,6 +454,7 @@ Required states:
 - task-reported failure
 - completed run with zero threats
 - untouched idle state
+- overview mode without any completed run yet
 
 Each state should have:
 
@@ -410,18 +485,21 @@ Recommended sequencing:
 
 1. establish tokens in `src/index.css`
 2. rebuild page shell in `App` and shell components
-3. introduce view-model mapping helpers
-4. migrate upload workspace
-5. migrate pipeline panel
-6. migrate result archive
-7. add floating action bar and final desktop polish
-8. run build verification
+3. add local mode switching for `方案概览` and `控制台`
+4. introduce view-model mapping helpers
+5. implement `方案概览` sections using only truthful, derivable content
+6. migrate upload workspace
+7. migrate pipeline panel
+8. migrate result archive
+9. add floating action bar and final desktop polish
+10. run build verification
 
 ## Acceptance Criteria
 
 The redesign is complete when all of the following are true:
 
 - the page visually reads as a desktop management console
+- the UI naturally communicates project value and architecture through product-native language
 - the `console-design` color, spacing, and surface language is consistently applied
 - the current upload -> poll -> result workflow still works with the existing backend API
 - the frontend dependency list stays effectively unchanged
