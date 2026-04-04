@@ -1,12 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import FileUpload from './components/FileUpload'
-import PipelineStatus from './components/PipelineStatus'
-import ResultDashboard from './components/ResultDashboard'
-import { uploadPcap, getTaskStatus, getTaskResult } from './api/client'
-import type { TaskStatus, DetectionResult, PipelineStage } from './types/api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { getTaskResult, getTaskStatus, uploadPcap } from './api/client'
 import styles from './App.module.css'
+import { PipelinePanel } from './components/PipelinePanel'
+import { ResultArchive } from './components/ResultArchive'
+import { SolutionOverview } from './components/SolutionOverview'
+import { UploadWorkspace } from './components/UploadWorkspace'
+import { buildConsoleViewModel, buildOverviewViewModel, type AppState } from './lib/view-models'
+import type { DetectionResult, PipelineStage, TaskStatus } from './types/api'
 
-type AppState = 'idle' | 'uploading' | 'processing' | 'completed' | 'failed'
+type ViewMode = 'overview' | 'console'
 
 const STAGE_COPY: Record<PipelineStage, { label: string; detail: string }> = {
   pending: {
@@ -26,24 +28,23 @@ const STAGE_COPY: Record<PipelineStage, { label: string; detail: string }> = {
     detail: '对异常候选进行语义分析与标签判定。',
   },
   completed: {
-    label: '检测完成',
-    detail: '结果已归档，可查看压降与威胁详情。',
+    label: '结果归档',
+    detail: '检测完成，异常档案和压降摘要已生成。',
   },
   failed: {
     label: '流程中断',
-    detail: '当前任务未能完成，需要重新提交样本。',
+    detail: '本次任务未能完成，需要重新提交样本。',
   },
 }
 
-const APP_STATE_LABEL: Record<AppState, string> = {
-  idle: '待命',
-  uploading: '上传中',
-  processing: '分析中',
-  completed: '已完成',
-  failed: '异常终止',
-}
+const NAV_ITEMS = [
+  { id: 'overview', label: '方案概览' },
+  { id: 'console', label: '控制台' },
+  { id: 'archive', label: '结果归档' },
+]
 
 export default function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>('overview')
   const [appState, setAppState] = useState<AppState>('idle')
   const [_taskId, setTaskId] = useState<string | null>(null)
   const [stage, setStage] = useState<PipelineStage>('pending')
@@ -62,20 +63,20 @@ export default function App() {
     activeTaskRef.current = null
   }, [])
 
-  const pollStatus = useCallback(async (id: string) => {
-    activeTaskRef.current = id
+  const pollStatus = useCallback(async (taskId: string) => {
+    activeTaskRef.current = taskId
     let consecutiveErrors = 0
 
     const poll = async (): Promise<boolean> => {
-      if (activeTaskRef.current !== id) {
+      if (activeTaskRef.current !== taskId) {
         return true
       }
 
       try {
-        const status: TaskStatus = await getTaskStatus(id)
+        const status: TaskStatus = await getTaskStatus(taskId)
         consecutiveErrors = 0
 
-        if (activeTaskRef.current !== id) {
+        if (activeTaskRef.current !== taskId) {
           return true
         }
 
@@ -84,39 +85,27 @@ export default function App() {
         setMessage(status.message)
 
         if (status.stage === 'completed') {
-          try {
-            const resultData = await getTaskResult(id)
-
-            if (activeTaskRef.current !== id) {
-              return true
-            }
-
-            setResult(resultData)
-            setAppState('completed')
-            clearPolling()
-            return true
-          } catch (err) {
-            setError(err instanceof Error ? err.message : '结果获取失败')
-            setAppState('failed')
-            clearPolling()
-            return true
-          }
+          const resultData = await getTaskResult(taskId)
+          setResult(resultData)
+          setAppState('completed')
+          clearPolling()
+          return true
         }
 
         if (status.stage === 'failed') {
-          setError(status.message)
           setAppState('failed')
+          setError(status.message)
           clearPolling()
           return true
         }
 
         return false
-      } catch (err) {
+      } catch (pollError) {
         consecutiveErrors += 1
 
         if (consecutiveErrors >= 3) {
-          setError(err instanceof Error ? err.message : '任务状态获取失败')
           setAppState('failed')
+          setError(pollError instanceof Error ? pollError.message : '任务状态获取失败')
           clearPolling()
           return true
         }
@@ -125,18 +114,20 @@ export default function App() {
       }
     }
 
-    const pollLoop = async () => {
+    const loop = async () => {
       const done = await poll()
-      if (!done && activeTaskRef.current === id) {
-        pollTimeoutRef.current = window.setTimeout(pollLoop, 1000)
+
+      if (!done && activeTaskRef.current === taskId) {
+        pollTimeoutRef.current = window.setTimeout(loop, 1000)
       }
     }
 
-    pollLoop()
+    await loop()
   }, [clearPolling])
 
   const handleUpload = useCallback(async (file: File): Promise<boolean> => {
     clearPolling()
+    setViewMode('console')
     setAppState('uploading')
     setError(null)
     setResult(null)
@@ -149,11 +140,11 @@ export default function App() {
       setTaskId(response.task_id)
       setAppState('processing')
       setMessage(response.message || '任务已创建，等待进入流水线。')
-      pollStatus(response.task_id)
+      await pollStatus(response.task_id)
       return true
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+    } catch (uploadError) {
       setAppState('failed')
+      setError(uploadError instanceof Error ? uploadError.message : '样本上传失败')
       setMessage('样本上传未完成，请检查后端服务或重新尝试。')
       return false
     }
@@ -161,8 +152,8 @@ export default function App() {
 
   const handleReset = useCallback(() => {
     clearPolling()
-    setAppState('idle')
     setTaskId(null)
+    setAppState('idle')
     setStage('pending')
     setProgress(0)
     setMessage('')
@@ -177,120 +168,160 @@ export default function App() {
   }, [clearPolling])
 
   const currentStage = STAGE_COPY[stage]
-  const threatCount = result?.threats.length ?? 0
-  const quickMetrics = result
-    ? [
-        { label: '异常流量', value: String(result.statistics.anomaly_flows_detected) },
-        { label: '压降节省', value: `${result.metrics.bandwidth_saved_percent.toFixed(1)}%` },
-        { label: '推理耗时', value: `${(result.meta.processing_time_ms / 1000).toFixed(2)}s` },
-      ]
-    : [
-        { label: '处理模式', value: '边缘侧预检' },
-        { label: '分析链路', value: 'SVM + LLM' },
-        { label: '输出目标', value: '威胁档案' },
-      ]
+  const consoleViewModel = buildConsoleViewModel({
+    appState,
+    stage,
+    message,
+    result,
+    error,
+  })
+  const overviewViewModel = buildOverviewViewModel(result)
 
   return (
-    <div className={styles.app}>
-      <div className={styles.backdrop} />
-
-      <header className={styles.hero}>
-        <div className={styles.heroCopy}>
-          <span className={styles.eyebrow}>EDGE DOSSIER / TRAFFIC FORENSICS</span>
-          <div className={styles.titleRow}>
-            <h1 className={styles.logo}>探微控制台</h1>
-            <span className={styles.stateBadge}>{APP_STATE_LABEL[appState]}</span>
-          </div>
-          <p className={styles.subtitle}>
-            将 Pcap 样本转化为可读的异常档案，突出筛选压降、当前流水线状态与可疑五元组。
-          </p>
+    <div className={styles.shell}>
+      <aside className={styles.sidebar}>
+        <div className={styles.brandBlock}>
+          <span className={styles.brandEyebrow}>EDGE TEST CONSOLE</span>
+          <h1 className={styles.brandTitle}>探微控制台</h1>
+          <p className={styles.brandText}>边缘侧预筛、推理压降与威胁归档的一体化前端工作台。</p>
         </div>
 
-        <div className={styles.heroPanel}>
-          <div className={styles.heroPanelLabel}>当前阶段</div>
-          <div className={styles.heroPanelStage}>{currentStage.label}</div>
-          <p className={styles.heroPanelText}>{message || currentStage.detail}</p>
+        <nav className={styles.nav}>
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              (item.id === 'overview' && viewMode === 'overview') ||
+              (item.id === 'console' && viewMode === 'console') ||
+              (item.id === 'archive' && viewMode === 'console')
 
-          <div className={styles.metricRail}>
-            {quickMetrics.map((item) => (
-              <div key={item.label} className={styles.metricCard}>
-                <span className={styles.metricLabel}>{item.label}</span>
-                <strong className={styles.metricValue}>{item.value}</strong>
-              </div>
-            ))}
-          </div>
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                onClick={() => setViewMode(item.id === 'overview' ? 'overview' : 'console')}
+              >
+                <span className={styles.navIcon}>{item.label.slice(0, 1)}</span>
+                <span>{item.label}</span>
+              </button>
+            )
+          })}
+        </nav>
 
-          <div className={styles.heroFooter}>
-            <span>阶段进度 {progress}%</span>
-            <span>{threatCount > 0 ? `已标记 ${threatCount} 个威胁流` : '等待样本进入检测链路'}</span>
-          </div>
+        <div className={styles.sidebarFooter}>
+          <span className={styles.footerBadge}>DESKTOP WORKSPACE</span>
+          <span className={styles.footerMeta}>{consoleViewModel.stateLabel}</span>
         </div>
-      </header>
+      </aside>
 
-      <main className={styles.workspace}>
-        <section className={styles.controlColumn}>
-          <div className={styles.sectionHeading}>
-            <span className={styles.sectionIndex}>01</span>
-            <div>
-              <h2>样本入口</h2>
-              <p>上传流量样本并触发一次新的边缘分析任务。</p>
-            </div>
+      <div className={styles.main}>
+        <header className={styles.topbar}>
+          <div>
+            <span className={styles.topbarEyebrow}>Warm Console / Traffic Forensics</span>
+            <p className={styles.topbarTitle}>{viewMode === 'overview' ? '方案概览' : '控制台'}</p>
           </div>
 
-          <FileUpload
-            onUpload={handleUpload}
-            disabled={appState === 'uploading' || appState === 'processing'}
-          />
+          <div className={styles.modeSwitch}>
+            <button
+              type="button"
+              className={`${styles.modeButton} ${viewMode === 'overview' ? styles.modeButtonActive : ''}`}
+              onClick={() => setViewMode('overview')}
+            >
+              方案概览
+            </button>
+            <button
+              type="button"
+              className={`${styles.modeButton} ${viewMode === 'console' ? styles.modeButtonActive : ''}`}
+              onClick={() => setViewMode('console')}
+            >
+              控制台
+            </button>
+          </div>
 
-          {appState !== 'idle' && (
-            <div className={styles.statusSection}>
-              <div className={styles.sectionHeading}>
-                <span className={styles.sectionIndex}>02</span>
-                <div>
-                  <h2>执行链路</h2>
-                  <p>观察当前任务在重组、筛选与推理中的推进状态。</p>
+          <div className={styles.statusCard}>
+            <span>{consoleViewModel.stateLabel}</span>
+            <strong>{message || currentStage.label}</strong>
+          </div>
+        </header>
+
+        <main className={styles.content}>
+          {viewMode === 'overview' ? (
+            <SolutionOverview viewModel={overviewViewModel} />
+          ) : (
+            <>
+              <section className={styles.heroCard}>
+                <div className={styles.heroWatermark}>OVERVIEW</div>
+                <div className={styles.heroCopy}>
+                  <span className={styles.heroEyebrow}>TASK OVERVIEW</span>
+                  <h2>围绕真实流量样本组织检测与归档</h2>
+                  <p>
+                    工作台保留现有上传、轮询和结果展示链路，同时把阶段进展、压降收益和威胁档案整合成控制台语义。
+                  </p>
                 </div>
-              </div>
 
-              <PipelineStatus
-                stage={stage}
-                progress={progress}
-                message={message}
-              />
-
-              {error && (
-                <div className={styles.error}>
-                  <strong>异常回执</strong>
-                  <span>{error}</span>
+                <div className={styles.heroStage}>
+                  <span className={styles.heroStateBadge}>{consoleViewModel.stateLabel}</span>
+                  <strong>{currentStage.label}</strong>
+                  <p>{error || message || currentStage.detail}</p>
                 </div>
-              )}
 
-              {(appState === 'completed' || appState === 'failed') && (
-                <button onClick={handleReset} className={styles.resetButton}>
-                  重新检测
-                </button>
-              )}
-            </div>
+                <div className={styles.heroMetrics}>
+                  {consoleViewModel.heroMetrics.map((item) => (
+                    <div key={item.label} className={styles.heroMetricCard}>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.workspace}>
+                <div className={styles.workspaceColumn}>
+                  <UploadWorkspace
+                    disabled={appState === 'uploading' || appState === 'processing'}
+                    isBusy={appState === 'uploading' || appState === 'processing'}
+                    onUpload={handleUpload}
+                  />
+
+                  <div className={styles.noteCard}>
+                    <span className={styles.noteLabel}>接口适配</span>
+                    <p>当前页面继续使用现有 `uploadPcap`、`getTaskStatus`、`getTaskResult` 三个入口，不增加新的前后端契约。</p>
+                  </div>
+                </div>
+
+                <div className={styles.workspaceColumn}>
+                  <PipelinePanel
+                    stage={stage}
+                    progress={progress}
+                    message={error || message}
+                  />
+                </div>
+              </section>
+
+              <section id="archive">
+                <ResultArchive result={result} />
+              </section>
+            </>
           )}
+        </main>
 
-          <aside className={styles.sideNote}>
-            <span className={styles.sideNoteTag}>运行提示</span>
-            <p>如果后端不可用，控制台会回退到 mock 结果，方便你单独校验界面层级与交互。</p>
-          </aside>
-        </section>
-
-        <section className={styles.resultColumn}>
-          <div className={styles.sectionHeading}>
-            <span className={styles.sectionIndex}>03</span>
-            <div>
-              <h2>结果档案</h2>
-              <p>把统计摘要、压降效果与异常流详情整合进一张可扫描的战术面板。</p>
-            </div>
+        {viewMode === 'console' && (
+          <div className={styles.floatingBar}>
+            <button type="button" className={styles.floatingGhost} onClick={() => setViewMode('overview')}>
+              查看方案概览
+            </button>
+            <button type="button" className={styles.floatingGhost} onClick={handleReset}>
+              重置工作台
+            </button>
+            <button
+              type="button"
+              className={styles.floatingPrimary}
+              onClick={() => document.getElementById('archive')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              跳转结果归档
+            </button>
           </div>
-
-          <ResultDashboard result={result} />
-        </section>
-      </main>
+        )}
+      </div>
     </div>
   )
 }

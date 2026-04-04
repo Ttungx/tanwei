@@ -1,0 +1,100 @@
+.card {
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow);
+}
+
+.header,
+.threatHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--primary-color);
+}
+
+.header h2,
+.metricCard strong,
+.sizeCard strong,
+.summaryPill strong,
+.threatHeader strong,
+.tupleGrid strong,
+.emptyState strong,
+.emptyThreats strong {
+  color: var(--text-primary);
+}
+
+.summaryPill,
+.metricCard,
+.sizeCard,
+.threatCard,
+.emptyState,
+.emptyThreats {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.summaryPill {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.metrics,
+.sizeGrid,
+.tupleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metricCard,
+.sizeCard {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.metricCard span,
+.sizeCard span,
+.summaryPill span,
+.threatHeader span,
+.tupleGrid span,
+.emptyState p,
+.emptyThreats p {
+  color: var(--text-secondary);
+}
+
+.threatList {
+  display: grid;
+  gap: 16px;
+}
+
+.threatCard {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.tupleGrid div {
+  display: grid;
+  gap: 6px;
+}
+
+.emptyState,
+.emptyThreats {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+}
