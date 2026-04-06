@@ -10,9 +10,10 @@ Rebuild `edge-test-console/frontend` into a desktop-first light-theme management
 
 This rebuild is not a landing page redesign and not a judge-facing presentation board. The frontend should still read as a real working console, but it must express the project's core value, hybrid method, workflow, and evidence clearly enough that a first-time viewer can understand the system without external narration.
 
-The product capability remains unchanged:
+The rebuilt product capability should cover:
 
 - upload a `.pcap` or `.pcapng` sample
+- choose a bundled demo traffic sample from `data/test_traffic/demo_show`
 - create a backend detection task
 - poll task status until completion or failure
 - fetch and display the result archive
@@ -29,14 +30,14 @@ The change is therefore an information architecture and interface system rebuild
    - what makes the system distinctive
    - what evidence the current run can prove
 4. Keep upload, pipeline tracking, and result archive as first-class workflow modules.
-5. Preserve the existing API contract and React + TypeScript + CSS Modules stack.
-6. Centralize visual tokens and presentation mapping so future changes do not require reworking every component.
+5. Add a first-party demo sample module so the console supports both local upload and built-in sample selection.
+6. Preserve the lightweight React + TypeScript + CSS Modules stack.
+7. Centralize visual tokens and presentation mapping so future changes do not require reworking every component.
 
 ## Non-goals
 
 - No mobile-first redesign
 - No route-based multi-page conversion
-- No new backend endpoints
 - No new charting, UI-library, or animation-library dependencies
 - No fabricated benchmark claims or decorative comparison panels unsupported by backend data
 - No change to upload validation rules, polling interval, or result semantics unless required for UI correctness
@@ -52,6 +53,7 @@ That means the UI should make these ideas legible through the product structure 
 - the design uses staged filtering rather than sending all traffic into heavy inference
 - the output is not only a label, but also a reduced-bandwidth structured result
 - the system is a real four-container closed loop with explicit service boundaries
+- the console supports both operator-provided samples and curated demonstration samples
 
 The UI should help a new viewer understand:
 
@@ -142,7 +144,7 @@ This section is the actual operator surface and should sit directly below the ov
 
 Structure:
 
-- left: upload and task controls
+- left: sample source and task controls
 - center/right: live pipeline panel
 - bottom or adjacent strip: current task summary
 
@@ -236,7 +238,7 @@ The workspace section is where the console proves it is a real working product.
 
 ### Upload Workspace
 
-Keep the existing file validation and task submission behavior.
+Keep the existing file validation and task submission behavior for local files.
 
 UI responsibilities:
 
@@ -247,6 +249,40 @@ UI responsibilities:
 - surface upload or validation errors clearly
 
 The visual treatment should follow the shared console input and button language.
+
+### Demo Sample Library
+
+Add a second sample source inside the same workspace for curated demo files stored under:
+
+`/root/anxun/data/test_traffic/demo_show`
+
+This should not feel like a hidden debug affordance. It is part of the product workflow.
+
+UI responsibilities:
+
+- show a segmented source switch such as `本地上传` and `演示样本`
+- list available built-in traffic files from the demo directory
+- display compact metadata per sample where available:
+  - file name
+  - file size
+  - optional short label derived from file naming or future manifest data
+- allow selecting one sample and launching detection without local file upload
+- show a clear empty state when the directory contains no samples
+
+The module should be dense and operational, closer to a sample inventory panel than a gallery.
+
+### Sample Source Model
+
+The workspace should treat `本地上传` and `演示样本` as two sibling sources for the same downstream detection action.
+
+Rules:
+
+- only one source is active at a time
+- switching source should preserve clarity about what will be submitted
+- the primary action label should remain explicit, for example:
+  - `提交检测任务`
+  - `启动演示检测`
+- selected built-in samples should surface their file metadata before submission just like local files do
 
 ### Pipeline Panel
 
@@ -347,6 +383,7 @@ Recommended component split:
 - `WorkflowChain`
 - `ArchitecturePanel`
 - `UploadWorkspace`
+- `DemoSampleLibrary`
 - `PipelinePanel`
 - `TaskSummary`
 - `ResultArchive`
@@ -454,11 +491,25 @@ The UI should teach by structure and labels, not by persuasive writing.
 
 ## API and Data Constraints
 
-Keep the existing API boundary unchanged:
+Preserve the current task lifecycle API shape for uploaded files:
 
 - `uploadPcap(file)`
 - `getTaskStatus(taskId)`
 - `getTaskResult(taskId)`
+
+Add a minimal built-in sample boundary for the new source mode:
+
+- `getDemoSamples()`
+- `startDemoDetection(sampleId)`
+
+The console backend should own filesystem access to the demo directory. The frontend should never reference local project paths directly.
+
+Recommended backend behavior:
+
+- enumerate demo files from `data/test_traffic/demo_show`
+- expose a compact API payload for the sample library
+- validate sample identifiers on submission
+- reuse the same downstream task creation and polling model as uploaded files
 
 The rebuild may derive display values from existing data, but it must not invent unsupported metrics.
 
