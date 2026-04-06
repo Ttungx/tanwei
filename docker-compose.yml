@@ -37,7 +37,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      start_period: 60s
+      retries: 5
 
   # ============================================================
   # 容器 2：前置轻量级过滤服务 (svm-filter-service)
@@ -69,6 +70,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
       timeout: 5s
+      start_period: 10s
       retries: 3
 
   # ============================================================
@@ -94,8 +96,10 @@ services:
       - MAX_TOKEN_LENGTH=690
       - LOG_LEVEL=INFO
     depends_on:
-      - llm-service
-      - svm-filter-service
+      llm-service:
+        condition: service_healthy
+      svm-filter-service:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -109,6 +113,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
       interval: 30s
       timeout: 10s
+      start_period: 15s
       retries: 3
 
   # ============================================================
@@ -127,7 +132,8 @@ services:
       - AGENT_LOOP_URL=http://agent-loop:8002
       - LOG_LEVEL=INFO
     depends_on:
-      - agent-loop
+      agent-loop:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -141,6 +147,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
+      start_period: 10s
       retries: 3
 
 # ============================================================
