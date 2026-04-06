@@ -377,6 +377,39 @@ curl -X POST http://llm-service:8080/completion \
 
 ## 8. 版本信息
 
-- **API 版本**：1.0.0
-- **更新日期**：2026-03-30
+- **API 版本**：1.1.0
+- **更新日期**：2026-04-06
 - **维护者**：探微架构团队
+
+---
+
+## 9. 演示样本 API (新增)
+
+### 9.1 GET /api/demo-samples
+
+**描述**：获取内置演示样本列表
+
+**响应**：
+```json
+[
+  {
+    "id": "dns-tunnel.pcapng",
+    "filename": "dns-tunnel.pcapng",
+    "display_name": "dns tunnel",
+    "size_bytes": 4096
+  }
+]
+```
+
+### 9.2 POST /api/detect-demo
+
+**描述**：使用演示样本启动检测任务
+
+**请求**：
+```json
+{
+  "sample_id": "dns-tunnel.pcapng"
+}
+```
+
+**响应**：同 `POST /api/detect`

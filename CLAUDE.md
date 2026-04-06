@@ -72,11 +72,11 @@ docs/
 ├── exec-plans/               # 执行计划
 │   ├── active-plan.md        # 当前任务
 │   └── tech-debt.md          # 技术债务
-└── references/               # 参考手册
-    ├── api_specs.md          # API 规范
-    ├── deployment.md         # 部署指南
-    ├── dataset-feature-engineering.md  # 数据集与特征工程
-    └── harness-engineering.md  # Harness 方法论
+├── references/               # 参考手册
+│   ├── api_specs.md          # API 规范
+│   ├── deployment.md         # 部署指南
+│   ├── dataset-feature-engineering.md  # 数据集与特征工程
+│   └── harness-engineering.md  # Harness 方法论
 ```
 
 ---
