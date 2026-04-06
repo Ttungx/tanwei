@@ -3,7 +3,7 @@
 # ============================================================
 
 # add
-docs\superpowers
+docs/superpowers
 
 # Claude Code workspace
 .claude/

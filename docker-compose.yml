@@ -46,8 +46,8 @@ services:
   # ============================================================
   svm-filter-service:
     build:
-      context: ./svm-filter-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: svm-filter-service/Dockerfile
     container_name: tanwei-svm-filter
     ports:
       - "8001:8001"
@@ -78,8 +78,8 @@ services:
   # ============================================================
   agent-loop:
     build:
-      context: ./agent-loop
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agent-loop/Dockerfile
     container_name: tanwei-agent-loop
     ports:
       - "8002:8002"
@@ -118,8 +118,8 @@ services:
   # ============================================================
   edge-test-console:
     build:
-      context: ./edge-test-console
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: edge-test-console/Dockerfile
     container_name: tanwei-test-console
     ports:
       - "3000:8000"

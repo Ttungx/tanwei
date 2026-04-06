@@ -17,14 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # 复制依赖文件
-COPY requirements.txt .
+COPY agent-loop/requirements.txt .
 
 # 安装 Python 依赖
 # 注意：禁止引入 PyTorch、TensorFlow
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制应用代码
-COPY app/ ./app/
+COPY agent-loop/app/ ./app/
 
 # 创建上传目录
 RUN mkdir -p /app/uploads
