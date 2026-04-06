@@ -2,11 +2,17 @@
 # Project-specific ignores
 # ============================================================
 
-# add
+# docs
 docs/superpowers
 
+# tracked project design and plan docs
+
 # Claude Code workspace
-.claude/
+.claude/*
+!.claude/agents/
+!.claude/agents/**
+.claude/settings.local.json
+.claude/agent-memory/
 .codex
 
 # LLM model files (large binary files)

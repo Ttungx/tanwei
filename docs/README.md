@@ -1,42 +1,50 @@
 # 探微 (Tanwei) 文档中心
 
-本目录是 EdgeAgent 系统的事实来源 (System of Record)，遵循 Harness Engineering 原则组织。
+本目录是 Tanwei EdgeAgent 项目的事实来源。文档系统按 Harness Engineering 思路组织：`CLAUDE.md` 负责导航，`docs/` 负责承载可执行知识。
 
 ## 文档结构
 
-```
+```text
 docs/
-├── design-docs/          # 架构设计与核心信仰
-│   ├── core-beliefs.md   # 物理约束与红线规范
-│   ├── architecture.md   # 四容器拓扑与通信边界
-│   └── traffic-tokenization.md  # 跨模态协议
-│
-├── exec-plans/           # 执行计划与技术债
-│   ├── active-plan.md    # 当前里程碑任务
-│   └── tech-debt.md      # 技术债务追踪
-│
-├── references/           # 参考手册
-│   ├── api_specs.md      # API 接口规范
-│   ├── deployment.md     # 部署指南
-│   ├── dataset-feature-engineering.md  # TrafficLLM 数据集与 SVM 特征工程
-│   └── harness-engineering.md  # Harness 工程方法论
+├── design-docs/             # 架构、边界、核心原则
+│   ├── core-beliefs.md
+│   ├── architecture.md
+│   ├── traffic-tokenization.md
+│   └── agent-operating-model.md
+├── exec-plans/              # 当前计划、归档、技术债
+│   ├── active-plan.md
+│   ├── completed/
+│   └── tech-debt.md
+├── references/              # 可直接给 agent 消费的参考手册
+│   ├── api_specs.md
+│   ├── deployment.md
+│   ├── dataset-feature-engineering.md
+│   ├── harness-engineering.md
+│   └── agent-harness.md
+└── superpowers/             # 设计与实施历史
 ```
 
-## 快速导航
+## Read Paths
 
-| 角色 | 推荐阅读顺序 |
-|------|--------------|
-| 新成员 | core-beliefs → architecture → active-plan |
-| 开发者 | architecture → api_specs → traffic-tokenization |
-| 运维 | deployment → architecture |
-| AI Agent | core-beliefs → active-plan → tech-debt |
+| 场景 | 推荐起点 |
+|------|----------|
+| 新 agent 或新成员了解仓库 | `CLAUDE.md` -> `design-docs/agent-operating-model.md` |
+| 改架构或跨服务任务 | `design-docs/architecture.md` |
+| 改流量处理和分词 | `design-docs/traffic-tokenization.md` |
+| 改训练、特征或评估 | `references/dataset-feature-engineering.md` |
+| 改部署和容器 | `references/deployment.md` |
+| 了解 agent 协作方式 | `references/agent-harness.md` |
 
-## 文档维护原则
+## Documentation Rules
 
-1. **AI 不可见即不存在**：所有架构决策必须落库为 markdown
-2. **单一来源**：每个知识点只在一处定义，避免冗余
-3. **渐进式展开**：本文档作为目录，具体内容在子目录
+1. AI 不可见即不存在，重要决策必须落在 repo 中。
+2. `CLAUDE.md` 是地图，不是巨型操作手册。
+3. 行为改变时，相关文档必须同步更新。
+4. 技术债应被记录，而不是隐藏在对话里。
 
----
+## Maintenance Loop
 
-*本文档由 Claude Code 维护，遵循 Harness Engineering 规范*
+- `lead-agent` 维护控制面和派工方式
+- `evaluator-agent` 做独立验收
+- `doc-gardener` 清理漂移、更新计划和知识库
+- `brainstorm-architect` 定期扫描并提出优化建议

@@ -1,84 +1,55 @@
 # 探微 (Tanwei) - EdgeAgent 边缘智能终端系统
 
-> **项目定位**：在网络节点旁路部署的独立边缘智能终端，采用 Docker 四容器微服务架构，实现流量检测与带宽压降。
-> 当前运行环境：WSL2(Ubuntu)
+> `CLAUDE.md` 是导航图，不是巨型说明书。详细知识在 `docs/`，agent 角色在 `.claude/agents/`。
 
----
+## Start Here
 
-## 强制查阅指令
+执行任何任务前，按需要阅读：
 
-在执行任何开发任务前，**必须**按以下顺序阅读文档：
+| 场景 | 必读文档 |
+|------|----------|
+| 任何跨服务任务 | `docs/design-docs/agent-operating-model.md` |
+| 编写或修改业务代码 | `docs/design-docs/architecture.md` |
+| 处理流量重组或分词 | `docs/design-docs/traffic-tokenization.md` |
+| 查看当前工作重点 | `docs/exec-plans/active-plan.md` |
+| 调整内部 API 或提示词契约 | `docs/references/api_specs.md` |
+| 训练 SVM 或改特征工程 | `docs/references/dataset-feature-engineering.md` |
+| 调整部署或容器 | `docs/references/deployment.md` |
+| 理解 agent 工作流 | `docs/references/agent-harness.md` |
 
-| 行为          | 必读文档                                   |
-| ------------- | ------------------------------------------ |
-| 编写/修改代码 | `docs/design-docs/architecture.md`         |
-| 处理流量特征  | `docs/design-docs/traffic-tokenization.md` |
-| 查看当前任务  | `docs/exec-plans/active-plan.md`           |
-| 调用内部 API  | `docs/references/api_specs.md`             |
+## Core Constraints
 
----
+1. 依赖方向：`edge-test-console -> agent-loop -> svm-filter-service / llm-service`
+2. 禁止前端绕过 `agent-loop` 直接调用下游服务
+3. 边缘容器禁止引入 `torch`、`tensorflow`、`transformers`、`pandas`
+4. 双重截断红线：时间窗口 `<= 60s`，包数量 `<= 10`
+5. 输出禁止包含原始 Pcap 载荷和完整应用层内容
 
-## 核心依赖路径
+## Agent Workflow
 
+1. 默认入口是 `lead-agent`
+2. 实现工作派发给领域 agent
+3. 完成后必须进入 `evaluator-agent`
+4. 通过后触发 `doc-gardener` 更新知识库和计划
+5. 需求发散、方案不稳或需要周期扫描时，调用 `brainstorm-architect`
+
+## Documentation System
+
+- `docs/design-docs/`: 架构、边界、核心原则
+- `docs/exec-plans/`: 当前计划、归档计划、技术债
+- `docs/references/`: 给 agent 直接消费的手册
+- `.claude/agents/`: Claude Code agent 的职责边界与触发条件
+
+## Feedback Loops
+
+- 修改后主动运行相关验证
+- 不要对同一失败无休止重试；超过合理次数应补 harness、脚本、文档或计划
+- 行为变化时必须同步更新 `docs/`
+- 发现 AI slop、坏模式或未完成设计时，记录到 `docs/exec-plans/tech-debt.md`
+
+## Key Paths
+
+```text
+TrafficLLM tokenizer: /root/anxun/TrafficLLM-master
+Base model:          /root/anxun/qwen3.5-0.8b/Qwen3.5-0.8B-Q4_K_M.gguf
 ```
-TrafficLLM 分词器:  /root/anxun/TrafficLLM-master
-边缘基座模型:       /root/anxun/qwen3.5-0.8b/Qwen3.5-0.8B-Q4_K_M.gguf
-```
-
----
- 
-## 架构约束红线
-
-1. **依赖方向**：edge-test-console → agent-loop → svm-filter / llm-service
-   - **禁止反向依赖**，禁止跨级调用
-
-2. **禁止依赖**（边缘容器中）：
-   - `torch`, `tensorflow`, `transformers`
-   - `pandas`
-   - 替代方案见 `docs/design-docs/core-beliefs.md`
-
-3. **双重截断保护**：
-   - 时间窗口 ≤ 60 秒
-   - 包数量 ≤ 前 10 个
-
----
-
-## 文档园艺协议
-
-每次成功提交复杂代码后，**必须**执行：
-
-1. 扫描 `docs/` 目录，更新过时的 API 或架构描述
-2. 若发现不良代码模式，记录到 `docs/exec-plans/tech-debt.md`
-3. 保持 System of Record 的准确性
-
----
-
-## 反馈循环
-
-- 修改代码后，**主动执行**相关测试
-- 测试失败不超过 3 次重试，超过则查看日志或记录技术债
-- 新学到的教训补充到 `docs/references/`
-
----
-
-## 文档导航
-
-```
-docs/
-├── design-docs/              # 架构设计
-│   ├── core-beliefs.md       # 物理约束与红线
-│   ├── architecture.md       # 四容器拓扑
-│   └── traffic-tokenization.md  # 分词规范
-├── exec-plans/               # 执行计划
-│   ├── active-plan.md        # 当前任务
-│   └── tech-debt.md          # 技术债务
-├── references/               # 参考手册
-│   ├── api_specs.md          # API 规范
-│   ├── deployment.md         # 部署指南
-│   ├── dataset-feature-engineering.md  # 数据集与特征工程
-│   └── harness-engineering.md  # Harness 方法论
-```
-
----
-
-*本文档遵循 Harness Engineering 规范，作为导航图使用。详细规范请查阅 `docs/` 目录。*
