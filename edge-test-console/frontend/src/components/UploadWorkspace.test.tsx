@@ -43,4 +43,18 @@ describe('UploadWorkspace', () => {
     expect(await screen.findByText('traffic.pcap')).toBeInTheDocument()
     expect(onUpload).toHaveBeenCalledWith(file)
   })
+
+  it('keeps the workspace copy focused on local upload flow', () => {
+    render(
+      <UploadWorkspace
+        disabled={false}
+        isBusy={false}
+        onUpload={vi.fn().mockResolvedValue(true)}
+      />,
+    )
+
+    expect(screen.getByText('上传检测样本')).toBeInTheDocument()
+    expect(screen.getByText('提交 pcap 或 pcapng 样本，触发边缘侧重组、SVM 初筛和 LLM 精判流程。')).toBeInTheDocument()
+    expect(screen.queryByText('演示样本')).not.toBeInTheDocument()
+  })
 })

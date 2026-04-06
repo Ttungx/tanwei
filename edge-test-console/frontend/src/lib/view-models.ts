@@ -1,4 +1,4 @@
-import type { DetectionResult, PipelineStage } from '../types/api'
+import type { DemoSample, DetectionResult, PipelineStage } from '../types/api'
 
 export type AppState = 'idle' | 'uploading' | 'processing' | 'completed' | 'failed'
 
@@ -17,6 +17,14 @@ interface OverviewCard {
   value: string
 }
 
+interface DemoSampleCard {
+  id: string
+  title: string
+  meta: string
+  filename: string
+  selected: boolean
+}
+
 interface ConsoleViewModel {
   stateLabel: string
   heroMetrics: MetricCard[]
@@ -25,6 +33,7 @@ interface ConsoleViewModel {
 interface OverviewViewModel {
   evidenceCards: OverviewCard[]
   pipeline: PipelineItem[]
+  architectureCards: OverviewCard[]
   systemCards: OverviewCard[]
 }
 
@@ -95,6 +104,25 @@ export function buildConsoleViewModel(input: ConsoleViewModelInput): ConsoleView
   }
 }
 
+export function buildDemoSampleCards(
+  samples: DemoSample[],
+  selectedId: string | null,
+): DemoSampleCard[] {
+  return samples.map((sample) => ({
+    id: sample.id,
+    title: sample.display_name,
+    meta: formatBytes(sample.size_bytes),
+    filename: sample.filename,
+    selected: sample.id === selectedId,
+  }))
+}
+
+const ARCHITECTURE_CARDS: OverviewCard[] = [
+  { label: '四容器闭环', value: 'Console -> Agent Loop -> SVM / LLM' },
+  { label: '推理策略', value: 'SVM 初筛 + LLM 精判' },
+  { label: '输出形式', value: '威胁档案与压降摘要' },
+]
+
 export function buildOverviewViewModel(result: DetectionResult | null): OverviewViewModel {
   if (!result) {
     return {
@@ -104,6 +132,7 @@ export function buildOverviewViewModel(result: DetectionResult | null): Overview
         { label: '处理耗时', value: '完成任务后生成' },
       ],
       pipeline: PIPELINE,
+      architectureCards: ARCHITECTURE_CARDS,
       systemCards: [
         { label: '交互入口', value: '前端控制台' },
         { label: '推理链路', value: 'SVM + LLM' },
@@ -122,6 +151,7 @@ export function buildOverviewViewModel(result: DetectionResult | null): Overview
       { label: '处理耗时', value: `${(result.meta.processing_time_ms / 1000).toFixed(2)}s` },
     ],
     pipeline: PIPELINE,
+    architectureCards: ARCHITECTURE_CARDS,
     systemCards: [
       { label: '交互入口', value: '前端控制台' },
       { label: '后端协调', value: '任务状态轮询' },

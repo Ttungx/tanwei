@@ -1,0 +1,127 @@
+.card {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow);
+}
+
+.topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tag,
+.tagMuted {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag {
+  background: rgb(139 134 128 / 0.14);
+  color: var(--text-primary);
+}
+
+.tagMuted {
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.copy {
+  display: grid;
+  gap: 8px;
+}
+
+.copy h3 {
+  color: var(--text-primary);
+}
+
+.copy p,
+.status,
+.emptyState p,
+.filename {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.error {
+  color: var(--warning-color);
+}
+
+.emptyState {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px dashed var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+
+.emptyState strong,
+.sampleCard strong {
+  color: var(--text-primary);
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+}
+
+.sampleCard {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.sampleCard:hover:not(:disabled),
+.sampleCardSelected {
+  border-color: rgb(139 134 128 / 0.45);
+  background: rgb(139 134 128 / 0.12);
+  transform: translateY(-1px);
+}
+
+.sampleCard:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.sampleCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.primaryButton {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  color: white;
+  font-weight: 700;
+}
+
+.primaryButton:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}

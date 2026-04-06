@@ -3,13 +3,14 @@ Edge Test Console - FastAPI Backend
 测试探针后端服务，负责文件上传、静态资源托管，并作为代理转发给 agent-loop
 """
 
+import logging
 import os
-import sys
 import uuid
 import asyncio
+import shutil
 import aiofiles
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 
 import requests
@@ -19,17 +20,48 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# 添加共享模块路径
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-from shared.log_config import get_edge_console_logger
 
-# 初始化日志
-logger = get_edge_console_logger()
+def create_logger() -> logging.Logger:
+    logger = logging.getLogger("edge-test-console")
+    if logger.handlers:
+        return logger
+
+    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    handler = logging.StreamHandler()
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+    )
+    logger.addHandler(handler)
+    logger.setLevel(level)
+    logger.propagate = False
+    return logger
+
+
+def resolve_demo_samples_dir(current_file: Path) -> Path:
+    configured_dir = os.getenv("DEMO_SAMPLES_DIR")
+    if configured_dir:
+        return Path(configured_dir)
+
+    if current_file == Path("/app/app/main.py"):
+        return Path("/app/demo-samples")
+
+    for parent in current_file.resolve().parents:
+        candidate = parent / "data/test_traffic/demo_show"
+        if candidate.exists():
+            return candidate
+
+    return Path("/app/demo-samples")
+
+
+logger = create_logger()
 
 # Configuration
 AGENT_LOOP_URL = os.getenv("AGENT_LOOP_URL", "http://agent-loop:8002")
-UPLOAD_DIR = Path("/app/uploads")
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/app/uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+DEMO_SAMPLES_DIR = resolve_demo_samples_dir(Path(__file__))
+SUPPORTED_PCAP_EXTENSIONS = (".pcap", ".pcapng")
 
 # In-memory task storage (in production, use Redis or database)
 tasks: Dict[str, Dict[str, Any]] = {}
@@ -65,7 +97,58 @@ class DetectionResponse(BaseModel):
     message: str
 
 
+class DemoDetectRequest(BaseModel):
+    sample_id: str
+
+
 # Helper functions
+def build_display_name(filename: str) -> str:
+    stem = Path(filename).stem
+    return stem.replace("_", " ").replace("-", " ").strip().title()
+
+
+def get_demo_sample_files() -> List[Path]:
+    if not DEMO_SAMPLES_DIR.exists() or not DEMO_SAMPLES_DIR.is_dir():
+        return []
+
+    return sorted(
+        [
+            path for path in DEMO_SAMPLES_DIR.iterdir()
+            if path.is_file() and path.suffix.lower() in SUPPORTED_PCAP_EXTENSIONS
+        ],
+        key=lambda path: path.name.lower(),
+    )
+
+
+def initialize_task(task_id: str, filename: str, original_size: int):
+    tasks[task_id] = {
+        "status": "pending",
+        "stage": "pending",
+        "progress": 0,
+        "message": "任务已创建，等待处理",
+        "filename": filename,
+        "original_size": original_size,
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+
+def resolve_demo_sample(sample_id: str) -> Path:
+    if Path(sample_id).name != sample_id:
+        raise HTTPException(status_code=400, detail="Invalid sample_id")
+
+    sample_path = DEMO_SAMPLES_DIR / sample_id
+    if not sample_path.exists() or not sample_path.is_file():
+        raise HTTPException(status_code=404, detail="Demo sample not found")
+
+    if sample_path.suffix.lower() not in SUPPORTED_PCAP_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file format. Only .pcap and .pcapng files are accepted"
+        )
+
+    return sample_path
+
+
 async def process_detection(task_id: str, file_path: Path, original_size: int):
     """Process detection task in background"""
     try:
@@ -144,14 +227,23 @@ async def process_detection(task_id: str, file_path: Path, original_size: int):
                         timeout=10
                     )
                     tasks[task_id]["result"] = result_response.json()
+                    tasks[task_id]["status"] = "completed"
                     logger.info(f"[Task {task_id}] Detection completed successfully")
                     break
                 elif stage == "failed":
+                    tasks[task_id]["status"] = "failed"
                     tasks[task_id]["error"] = status_data.get("error", "Unknown error")
                     logger.error(f"[Task {task_id}] Detection failed: {tasks[task_id]['error']}")
                     break
 
                 await asyncio.sleep(1)
+            else:
+                timeout_error = "Polling timeout: detection did not reach terminal state"
+                tasks[task_id]["status"] = "failed"
+                tasks[task_id]["stage"] = "failed"
+                tasks[task_id]["error"] = timeout_error
+                tasks[task_id]["message"] = "检测超时，任务未在预期时间内完成"
+                logger.error(f"[Task {task_id}] {timeout_error}")
 
         except requests.exceptions.RequestException as e:
             # For demo purposes, generate mock result if agent-loop is not available
@@ -164,6 +256,7 @@ async def process_detection(task_id: str, file_path: Path, original_size: int):
             # Generate mock result for demo
             mock_result = generate_mock_result(task_id, original_size)
             tasks[task_id]["result"] = mock_result
+            tasks[task_id]["status"] = "completed"
             tasks[task_id]["stage"] = "completed"
             tasks[task_id]["progress"] = 100
             tasks[task_id]["message"] = "检测完成"
@@ -298,7 +391,7 @@ async def detect_pcap(
         logger.warning("Upload rejected: no filename provided")
         raise HTTPException(status_code=400, detail="No file provided")
 
-    if not file.filename.lower().endswith(('.pcap', '.pcapng')):
+    if not file.filename.lower().endswith(SUPPORTED_PCAP_EXTENSIONS):
         logger.warning(f"Upload rejected: invalid format - {file.filename}")
         raise HTTPException(
             status_code=400,
@@ -320,17 +413,47 @@ async def detect_pcap(
     logger.info(f"Task created: {task_id}, file={file.filename}, size={original_size} bytes")
 
     # Initialize task
-    tasks[task_id] = {
-        "status": "pending",
-        "stage": "pending",
-        "progress": 0,
-        "message": "任务已创建，等待处理",
-        "filename": file.filename,
-        "original_size": original_size,
-        "created_at": datetime.utcnow().isoformat()
-    }
+    initialize_task(task_id, file.filename, original_size)
 
     # Start background processing
+    background_tasks.add_task(process_detection, task_id, file_path, original_size)
+
+    return DetectionResponse(
+        status="success",
+        task_id=task_id,
+        message="Detection task started"
+    )
+
+
+@app.get("/api/demo-samples")
+async def get_demo_samples():
+    samples = []
+    for sample_file in get_demo_sample_files():
+        samples.append({
+            "id": sample_file.name,
+            "filename": sample_file.name,
+            "display_name": build_display_name(sample_file.name),
+            "size_bytes": sample_file.stat().st_size
+        })
+    return samples
+
+
+@app.post("/api/detect-demo", response_model=DetectionResponse)
+async def detect_demo_sample(
+    payload: DemoDetectRequest,
+    background_tasks: BackgroundTasks,
+):
+    sample_path = resolve_demo_sample(payload.sample_id)
+
+    # Generate task ID and copy demo sample into upload workspace
+    task_id = str(uuid.uuid4())
+    file_path = UPLOAD_DIR / f"{task_id}_{sample_path.name}"
+    original_size = sample_path.stat().st_size
+
+    shutil.copyfile(sample_path, file_path)
+
+    logger.info(f"Demo task created: {task_id}, sample={sample_path.name}, size={original_size} bytes")
+    initialize_task(task_id, sample_path.name, original_size)
     background_tasks.add_task(process_detection, task_id, file_path, original_size)
 
     return DetectionResponse(

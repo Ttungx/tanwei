@@ -70,3 +70,12 @@ export interface DetectionResponse {
   task_id: string
   message: string
 }
+
+export type SampleSource = 'upload' | 'demo'
+
+export interface DemoSample {
+  id: string
+  filename: string
+  display_name: string
+  size_bytes: number
+}

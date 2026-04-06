@@ -26,13 +26,59 @@ import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
-# 添加共享模块路径
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from shared.log_config import get_agent_loop_logger
+from loguru import logger
 
 from flow_processor import FlowProcessor, Flow
 from traffic_tokenizer import TrafficTokenizer
+
+
+# ============================================================
+# 日志配置
+# ============================================================
+
+LOG_FORMAT = (
+    "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+    "<level>{level: <8}</level> | "
+    "<cyan>agent-loop</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+    "<level>{message}</level>"
+)
+
+
+def setup_logger():
+    """配置 logger"""
+    logger.remove()
+    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    log_format = os.environ.get("LOG_FORMAT", "console").lower()
+
+    if log_format == "json":
+        format_str = '{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", "level": "{level}", "service": "agent-loop", "function": "{function}", "line": {line}, "message": "{message}"}'
+    else:
+        format_str = LOG_FORMAT
+
+    logger.add(
+        sink=sys.stdout,
+        format=format_str,
+        level=log_level,
+        colorize=(log_format != "json"),
+        enqueue=True,
+    )
+
+    log_file = os.environ.get("LOG_FILE")
+    if log_file:
+        logger.add(
+            sink=log_file,
+            format='{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", "level": "{level}", "service": "agent-loop", "function": "{function}", "line": {line}, "message": "{message}"}',
+            level=log_level,
+            rotation="10 MB",
+            retention="7 days",
+            compression="gz",
+            enqueue=True,
+        )
+
+    return logger.bind(service="agent-loop")
+
+
+logger = setup_logger()
 
 
 # ============================================================

@@ -20,14 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY svm-filter-service/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app/ ./app/
-COPY models/ ./models/
+COPY svm-filter-service/app/ ./app/
+COPY svm-filter-service/models/ ./models/
 
 # Create directory for model files
 RUN mkdir -p /app/models/saved

@@ -22,6 +22,13 @@ export function ResultArchive({ result }: ResultArchiveProps) {
     )
   }
 
+  const completedAt = new Date(result.meta.timestamp).toLocaleString('zh-CN', {
+    hour12: false,
+  })
+  const threatCount = result.statistics.anomaly_flows_detected
+  const hasThreatDetails = result.threats.length > 0
+  const archiveStatus = threatCount === 0 ? '已归档' : '待复核'
+
   return (
     <section className={styles.card}>
       <header className={styles.header}>
@@ -34,6 +41,28 @@ export function ResultArchive({ result }: ResultArchiveProps) {
           <strong>{result.meta.task_id}</strong>
         </div>
       </header>
+
+      <section className={styles.summarySection} aria-label="归档总览">
+        <div className={styles.sectionHeading}>
+          <span className={styles.sectionEyebrow}>ARCHIVE SUMMARY</span>
+          <h3>归档总览</h3>
+        </div>
+
+        <div className={styles.metrics}>
+          <div className={styles.metricCard}>
+            <span>归档状态</span>
+            <strong>{archiveStatus}</strong>
+          </div>
+          <div className={styles.metricCard}>
+            <span>异常威胁</span>
+            <strong>{threatCount}</strong>
+          </div>
+          <div className={styles.metricCard}>
+            <span>完成时间</span>
+            <strong>{completedAt}</strong>
+          </div>
+        </div>
+      </section>
 
       <div className={styles.metrics}>
         <div className={styles.metricCard}>
@@ -65,11 +94,22 @@ export function ResultArchive({ result }: ResultArchiveProps) {
         </div>
       </div>
 
-      <div className={styles.threatList}>
-        {result.threats.length === 0 ? (
+      <section className={styles.threatSection} aria-label="威胁证据">
+        <div className={styles.sectionHeading}>
+          <span className={styles.sectionEyebrow}>THREAT EVIDENCE</span>
+          <h3>威胁证据</h3>
+        </div>
+
+        <div className={styles.threatList}>
+        {threatCount === 0 ? (
           <div className={styles.emptyThreats}>
-            <strong>未见异常流量</strong>
+            <strong>零威胁归档</strong>
             <p>本次样本未检测到异常候选，结果已按正常档案归档。</p>
+          </div>
+        ) : !hasThreatDetails ? (
+          <div className={styles.emptyThreats}>
+            <strong>威胁明细待补充</strong>
+            <p>已检出异常，但当前结果未返回详细威胁记录。</p>
           </div>
         ) : (
           result.threats.map((threat) => (
@@ -88,8 +128,16 @@ export function ResultArchive({ result }: ResultArchiveProps) {
                   <strong>{threat.five_tuple.src_ip}</strong>
                 </div>
                 <div>
+                  <span>源端口</span>
+                  <strong>{threat.five_tuple.src_port}</strong>
+                </div>
+                <div>
                   <span>目标 IP</span>
                   <strong>{threat.five_tuple.dst_ip}</strong>
+                </div>
+                <div>
+                  <span>目标端口</span>
+                  <strong>{threat.five_tuple.dst_port}</strong>
                 </div>
                 <div>
                   <span>协议</span>
@@ -99,11 +147,20 @@ export function ResultArchive({ result }: ResultArchiveProps) {
                   <span>Token</span>
                   <strong>{threat.token_info.token_count}</strong>
                 </div>
+                <div>
+                  <span>包数量</span>
+                  <strong>{threat.flow_metadata.packet_count}</strong>
+                </div>
+                <div>
+                  <span>流量字节</span>
+                  <strong>{formatBytes(threat.flow_metadata.byte_count)}</strong>
+                </div>
               </div>
             </article>
           ))
         )}
-      </div>
+        </div>
+      </section>
     </section>
   )
 }

@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import type { DetectionResult } from '../types/api'
-import { buildConsoleViewModel, buildOverviewViewModel, formatBytes } from './view-models'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { getDemoSamples, startDemoDetection } from '../api/client'
+import type { DemoSample, DetectionResult } from '../types/api'
+import {
+  buildConsoleViewModel,
+  buildDemoSampleCards,
+  buildOverviewViewModel,
+  formatBytes,
+} from './view-models'
 
 function createResult(overrides?: Partial<DetectionResult>): DetectionResult {
   return {
@@ -111,6 +117,10 @@ describe('buildOverviewViewModel', () => {
       label: 'SVM 初筛',
       detail: '快速过滤大部分正常流量，压低后续推理成本。',
     })
+    expect(viewModel.architectureCards[0]).toEqual({
+      label: '四容器闭环',
+      value: 'Console -> Agent Loop -> SVM / LLM',
+    })
     expect(viewModel.systemCards[0].value).toBe('前端控制台')
   })
 
@@ -119,5 +129,86 @@ describe('buildOverviewViewModel', () => {
 
     expect(viewModel.evidenceCards[0].value).toBe('等待首个样本')
     expect(viewModel.evidenceCards[1].value).toBe('完成任务后生成')
+    expect(viewModel.architectureCards[0].label).toBe('四容器闭环')
+  })
+})
+
+describe('buildDemoSampleCards', () => {
+  it('maps backend-shaped demo samples into selectable cards', () => {
+    const samples: DemoSample[] = [
+      {
+        id: 'dns-tunnel.pcapng',
+        filename: 'dns-tunnel.pcapng',
+        display_name: 'dns tunnel',
+        size_bytes: 4096,
+      },
+    ]
+
+    expect(buildDemoSampleCards(samples, 'dns-tunnel.pcapng')).toEqual([
+      expect.objectContaining({
+        id: 'dns-tunnel.pcapng',
+        title: 'dns tunnel',
+        meta: '4.0 KB',
+        selected: true,
+      }),
+    ])
+  })
+})
+
+describe('demo sample api helpers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('loads demo sample list from backend', async () => {
+    const responsePayload = [
+      {
+        id: 'dns-tunnel.pcapng',
+        filename: 'dns-tunnel.pcapng',
+        display_name: 'dns tunnel',
+        size_bytes: 4096,
+      },
+    ]
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(responsePayload), { status: 200 }),
+    )
+
+    await expect(getDemoSamples()).resolves.toEqual(responsePayload)
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/demo-samples')
+  })
+
+  it('throws when demo sample list endpoint is unavailable', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 503 }))
+
+    await expect(getDemoSamples()).rejects.toThrow('Demo sample list unavailable')
+  })
+
+  it('starts demo detection using selected sample id', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({ status: 'success', task_id: 'task-100', message: 'Detection task started' }),
+        { status: 200 },
+      ),
+    )
+
+    await expect(startDemoDetection('dns-tunnel.pcapng')).resolves.toEqual({
+      status: 'success',
+      task_id: 'task-100',
+      message: 'Detection task started',
+    })
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/detect-demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sample_id: 'dns-tunnel.pcapng' }),
+    })
+  })
+
+  it('throws backend detail when demo detection fails', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'Unknown demo sample id' }), { status: 400 }),
+    )
+
+    await expect(startDemoDetection('missing-sample.pcap')).rejects.toThrow('Unknown demo sample id')
   })
 })

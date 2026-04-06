@@ -13,10 +13,12 @@ const STAGES: { id: PipelineStage; label: string; detail: string }[] = [
   { id: 'svm_filtering', label: 'SVM 初筛', detail: '快速丢弃正常流，控制推理开销。' },
   { id: 'llm_inference', label: 'LLM 推理', detail: '对可疑流进行语义分类与标签判定。' },
   { id: 'completed', label: '结果归档', detail: '生成异常档案与压降汇总。' },
+  { id: 'failed', label: '流程中断', detail: '本次任务未能完成，需要重新提交样本。' },
 ]
 
 export function PipelinePanel({ stage, progress, message }: PipelinePanelProps) {
   const activeStage = STAGES.find((item) => item.id === stage) ?? STAGES[0]
+  const statusLabel = stage === 'failed' ? '任务失败' : stage === 'completed' ? '任务完成' : '处理中'
 
   return (
     <section className={styles.card}>
@@ -25,7 +27,10 @@ export function PipelinePanel({ stage, progress, message }: PipelinePanelProps) 
           <span className={styles.eyebrow}>PIPELINE TRACE</span>
           <h3>{activeStage.label}</h3>
         </div>
-        <strong>{progress}%</strong>
+        <div className={styles.headerMeta}>
+          <span className={styles.status}>{statusLabel}</span>
+          <strong>{progress}%</strong>
+        </div>
       </div>
 
       <p className={styles.lead}>{message || activeStage.detail}</p>

@@ -1,4 +1,4 @@
-import type { DetectionResponse, TaskStatus, DetectionResult } from '../types/api'
+import type { DemoSample, DetectionResponse, DetectionResult, TaskStatus } from '../types/api'
 
 const API_BASE = '/api'
 
@@ -35,6 +35,31 @@ export async function getTaskResult(taskId: string): Promise<DetectionResult> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Result not found' }))
     throw new Error(error.detail || 'Result not found')
+  }
+
+  return response.json()
+}
+
+export async function getDemoSamples(): Promise<DemoSample[]> {
+  const response = await fetch(`${API_BASE}/demo-samples`)
+
+  if (!response.ok) {
+    throw new Error('Demo sample list unavailable')
+  }
+
+  return response.json()
+}
+
+export async function startDemoDetection(sampleId: string): Promise<DetectionResponse> {
+  const response = await fetch(`${API_BASE}/detect-demo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sample_id: sampleId }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Demo detection failed' }))
+    throw new Error(error.detail || 'Demo detection failed')
   }
 
   return response.json()

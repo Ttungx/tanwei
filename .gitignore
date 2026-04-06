@@ -2,8 +2,12 @@
 # Project-specific ignores
 # ============================================================
 
+# add
+docs\superpowers
+
 # Claude Code workspace
 .claude/
+.codex
 
 # LLM model files (large binary files)
 qwen3.5-0.8b/
