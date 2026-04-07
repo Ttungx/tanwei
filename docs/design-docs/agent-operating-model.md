@@ -26,13 +26,12 @@ type: project
 
 ### Execution Plane
 
-- `agent-loop-engineer`
+- `console-developer`
+- `edge-agent-engineer`
+- `central-agent-engineer`
 - `detection-ml-engineer`
-- `svm-filter-engineer`
-- `llm-service-engineer`
 - `traffic-security-analyst`
 - `data-scientist`
-- `frontend-developer`
 - `docker-expert`
 
 ### Evaluation Plane
@@ -48,7 +47,7 @@ type: project
 1. 用户任务默认先进入 `lead-agent`
 2. `lead-agent` 明确 `task / scope / constraints / acceptance`
 3. 如果需求发散或方案不稳，先调用 `brainstorm-architect`
-4. 派发到对应执行 agent
+4. 默认派发到 `console-developer` / `edge-agent-engineer` / `central-agent-engineer`（按边界分工）
 5. 实现完成后交给 `evaluator-agent`
 6. 通过后由 `doc-gardener` 更新知识库与计划状态
 7. `lead-agent` 汇总并决定是否继续下一轮
@@ -64,11 +63,12 @@ type: project
 
 ## Service Ownership
 
-- `edge-test-console/`: `frontend-developer`
-- `agent-loop/`: `agent-loop-engineer`
-- `svm-filter-service/` runtime: `svm-filter-engineer`
+- `console/`: `console-developer`
+- `edge-agent/`: `edge-agent-engineer`
+- `central-agent/` runtime orchestration: `central-agent-engineer`
+- `svm-filter-service/` runtime: `central-agent-engineer`（兼容别名：`svm-filter-engineer`）
 - `svm-filter-service/models/` training side: `detection-ml-engineer`
-- `llm-service/`: `llm-service-engineer`
+- `llm-service/`: `central-agent-engineer`（兼容别名：`llm-service-engineer`）
 - multi-container runtime: `docker-expert`
 
 ## Escalation Rules

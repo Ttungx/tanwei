@@ -79,3 +79,51 @@ export interface DemoSample {
   display_name: string
   size_bytes: number
 }
+
+export interface EdgeSummary {
+  edge_id: string
+  display_name: string
+  status: string
+  location: string
+  last_reported_at: string
+  threat_count: number
+  risk_level: string
+}
+
+export interface EdgeReportSummary {
+  headline: string
+  risk_level: string
+  threat_count: number
+  bandwidth_saved_percent: number
+}
+
+export interface EdgeLatestReport {
+  edge_id: string
+  report_id: string
+  generated_at: string
+  summary: EdgeReportSummary
+  report: DetectionResult
+}
+
+export interface NetworkAnalysisSummary {
+  edge_count: number
+  edges_with_alerts: number
+  total_threats: number
+  highest_risk_edge: string
+  recommended_action: string
+}
+
+export interface NetworkAnalysisEdge {
+  edge_id: string
+  display_name: string
+  threat_count: number
+  risk_level: string
+  generated_at: string
+}
+
+export interface NetworkAnalysisResult {
+  analysis_id: string
+  generated_at: string
+  summary: NetworkAnalysisSummary
+  edges: NetworkAnalysisEdge[]
+}

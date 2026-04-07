@@ -2,6 +2,8 @@
 
 > `CLAUDE.md` 是导航图，不是巨型说明书。详细知识在 `docs/`，agent 角色在 `.claude/agents/`。
 
+当前默认执行架构：`console-developer + edge-agent-engineer + central-agent-engineer`。
+
 ## Start Here
 
 执行任何任务前，按需要阅读：
@@ -19,7 +21,7 @@
 
 ## Core Constraints
 
-1. 依赖方向：`edge-test-console -> agent-loop -> svm-filter-service / llm-service`
+1. 依赖方向：`console-developer(edge-test-console) -> edge-agent-engineer(agent-loop) -> central-agent-engineer(svm-filter-service / llm-service)`
 2. 禁止前端绕过 `agent-loop` 直接调用下游服务
 3. 边缘容器禁止引入 `torch`、`tensorflow`、`transformers`、`pandas`
 4. 双重截断红线：时间窗口 `<= 60s`，包数量 `<= 10`
@@ -28,7 +30,7 @@
 ## Agent Workflow
 
 1. 默认入口是 `lead-agent`
-2. 实现工作派发给领域 agent
+2. 实现工作优先派发给 `console-developer`、`edge-agent-engineer`、`central-agent-engineer`
 3. 完成后必须进入 `evaluator-agent`
 4. 通过后触发 `doc-gardener` 更新知识库和计划
 5. 需求发散、方案不稳或需要周期扫描时，调用 `brainstorm-architect`

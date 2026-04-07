@@ -1,5 +1,5 @@
-# 探微 (Tanwei) - Agent Loop 容器
-# EdgeAgent 核心大脑：五阶段工作流执行
+# 探微 (Tanwei) - edge-agent 容器
+# edge-agent 核心大脑：五阶段工作流执行
 # 技术栈：Python 3.10-slim + scapy + FastAPI
 
 FROM python:3.10-slim
@@ -17,14 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # 复制依赖文件
-COPY agent-loop/requirements.txt .
+COPY edge-agent/requirements.txt .
 
 # 安装 Python 依赖
 # 注意：禁止引入 PyTorch、TensorFlow
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制应用代码
-COPY agent-loop/app/ ./app/
+COPY edge-agent/app/ ./app/
 
 # 创建上传目录
 RUN mkdir -p /app/uploads

@@ -22,7 +22,7 @@ from loguru import logger
 LOG_FORMAT = (
     "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
     "<level>{level: <8}</level> | "
-    "<cyan>agent-loop</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+    "<cyan>edge-agent</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
     "<level>{message}</level>"
 )
 
@@ -34,7 +34,7 @@ def setup_logger():
     log_format = os.environ.get("LOG_FORMAT", "console").lower()
 
     if log_format == "json":
-        format_str = '{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", "level": "{level}", "service": "agent-loop", "function": "{function}", "line": {line}, "message": "{message}"}'
+        format_str = '{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", "level": "{level}", "service": "edge-agent", "function": "{function}", "line": {line}, "message": "{message}"}'
     else:
         format_str = LOG_FORMAT
 
@@ -45,7 +45,7 @@ def setup_logger():
         colorize=(log_format != "json"),
         enqueue=True,
     )
-    return logger.bind(service="agent-loop")
+    return logger.bind(service="edge-agent")
 
 
 logger = setup_logger()

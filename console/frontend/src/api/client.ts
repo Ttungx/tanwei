@@ -1,4 +1,12 @@
-import type { DemoSample, DetectionResponse, DetectionResult, TaskStatus } from '../types/api'
+import type {
+  DemoSample,
+  DetectionResponse,
+  DetectionResult,
+  EdgeLatestReport,
+  EdgeSummary,
+  NetworkAnalysisResult,
+  TaskStatus,
+} from '../types/api'
 
 const API_BASE = '/api'
 
@@ -60,6 +68,53 @@ export async function startDemoDetection(sampleId: string): Promise<DetectionRes
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Demo detection failed' }))
     throw new Error(error.detail || 'Demo detection failed')
+  }
+
+  return response.json()
+}
+
+export async function getEdges(): Promise<EdgeSummary[]> {
+  const response = await fetch(`${API_BASE}/edges`)
+
+  if (!response.ok) {
+    throw new Error('Edge list unavailable')
+  }
+
+  return response.json()
+}
+
+export async function getLatestEdgeReport(edgeId: string): Promise<EdgeLatestReport> {
+  const response = await fetch(`${API_BASE}/edges/${edgeId}/reports/latest`)
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Edge report unavailable' }))
+    throw new Error(error.detail || 'Edge report unavailable')
+  }
+
+  return response.json()
+}
+
+export async function startEdgeAnalysis(edgeId: string): Promise<EdgeLatestReport> {
+  const response = await fetch(`${API_BASE}/edges/${edgeId}/analyze`, {
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Edge analysis failed' }))
+    throw new Error(error.detail || 'Edge analysis failed')
+  }
+
+  return response.json()
+}
+
+export async function startNetworkAnalysis(): Promise<NetworkAnalysisResult> {
+  const response = await fetch(`${API_BASE}/network/analyze`, {
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Network analysis failed' }))
+    throw new Error(error.detail || 'Network analysis failed')
   }
 
   return response.json()

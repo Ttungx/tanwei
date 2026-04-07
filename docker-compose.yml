@@ -150,6 +150,45 @@ services:
       start_period: 10s
       retries: 3
 
+  # ============================================================
+  # 容器 5：云侧综合研判服务 (central-agent)
+  # 工程定位：接收各 edge 的结构化 JSON 情报，并按 edge/全网触发综合分析
+  # 技术栈：Python 3.10-slim + FastAPI + SQLite
+  # ============================================================
+  central-agent:
+    build:
+      context: .
+      dockerfile: central-agent/Dockerfile
+    container_name: tanwei-central-agent
+    ports:
+      - "8003:8003"
+    env_file:
+      - .env
+    environment:
+      - CENTRAL_AGENT_DB_PATH=/app/data/central-agent.db
+      - EXTERNAL_LLM_BASE_URL=${EXTERNAL_LLM_BASE_URL:-}
+      - EXTERNAL_LLM_API_KEY=${EXTERNAL_LLM_API_KEY:-}
+      - EXTERNAL_LLM_MODEL=${EXTERNAL_LLM_MODEL:-gpt-4o-mini}
+      - EXTERNAL_LLM_TIMEOUT_SECONDS=${EXTERNAL_LLM_TIMEOUT_SECONDS:-45}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - central-agent-data:/app/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - tanwei-internal
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
 # ============================================================
 # 网络配置：内部隔离网络，模拟边缘设备环境
 # ============================================================
@@ -163,3 +202,4 @@ networks:
 # ============================================================
 volumes:
   uploads:
+  central-agent-data:

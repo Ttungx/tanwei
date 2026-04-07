@@ -29,7 +29,7 @@ type: reference
 - 结构化知识进入 `docs/`
 - Claude Code agents 的职责边界写入 `.claude/agents/`
 - agent 文件本身要具备触发样例、边界、质量门和输出契约，而不是只有宽泛角色描述
-- `lead-agent -> execution agent -> evaluator-agent -> doc-gardener` 成为默认闭环
+- `lead-agent -> (console-developer | edge-agent-engineer | central-agent-engineer) -> evaluator-agent -> doc-gardener` 成为默认闭环
 - 技术债、计划状态、架构约束都必须 repo 可见
 
 ## Documentation Implications

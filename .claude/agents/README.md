@@ -32,13 +32,12 @@ Each subagent file should follow the Tanwei project format:
 - `lead-agent`
 - `evaluator-agent`
 - `brainstorm-architect`
-- `agent-loop-engineer`
+- `edge-agent-engineer`
+- `central-agent-engineer`
 - `detection-ml-engineer`
-- `svm-filter-engineer`
-- `llm-service-engineer`
 - `traffic-security-analyst`
 - `data-scientist`
-- `frontend-developer`
+- `console-developer`
 - `docker-expert`
 - `doc-gardener`
 - `example-demo-agent`

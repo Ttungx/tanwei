@@ -6,9 +6,12 @@
 docs/superpowers
 .zread
 
+# env
+.env
+
 # tracked project design and plan docs
 
-# Claude Code workspace
+# Claude Code workspace %% codex
 .claude/*
 !.claude/agents/
 !.claude/agents/**

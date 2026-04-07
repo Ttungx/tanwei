@@ -33,16 +33,17 @@ type: reference
 |------|-------------|
 | 跨容器任务、计划拆解、harness 修订 | `lead-agent` |
 | 方案比较、优化建议、定期扫描 | `brainstorm-architect` |
-| `agent-loop/` 编排与服务契约 | `agent-loop-engineer` |
+| `edge-agent/` 编排与服务契约 | `edge-agent-engineer` |
 | SVM 训练、特征工程、离线评估 | `detection-ml-engineer` |
-| `svm-filter-service/` 在线推理 | `svm-filter-engineer` |
-| `llm-service/` 推理服务与输出契约 | `llm-service-engineer` |
+| `svm-filter-service/` 与 `llm-service/` 中心推理运行时与契约 | `central-agent-engineer` |
 | 流量语义、标签、误报漏报分析 | `traffic-security-analyst` |
 | 数据分析、实验设计、统计对比 | `data-scientist` |
-| `edge-test-console/` 前端与其控制台后端 | `frontend-developer` |
+| `console/` 前端与其控制台后端 | `console-developer` |
 | Dockerfile、compose、运行边界 | `docker-expert` |
 | 独立验收 | `evaluator-agent` |
 | 文档同步、计划归档、技术债记录 | `doc-gardener` |
+
+> 兼容说明：`llm-service-engineer` 与 `svm-filter-engineer` 仍保留为兼容别名文件；新任务默认路由到 `central-agent-engineer`。
 
 ## Mandatory Handoffs
 

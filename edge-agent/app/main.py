@@ -1,6 +1,6 @@
 """
-探微 (Tanwei) - Agent Loop 主程序
-EdgeAgent 核心大脑：五阶段工作流执行
+探微 (Tanwei) - edge-agent 主程序
+edge-agent 核心大脑：五阶段工作流执行
 
 API 端点：
 - GET /health - 健康检查
@@ -39,7 +39,7 @@ from traffic_tokenizer import TrafficTokenizer
 LOG_FORMAT = (
     "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
     "<level>{level: <8}</level> | "
-    "<cyan>agent-loop</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+    "<cyan>edge-agent</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
     "<level>{message}</level>"
 )
 
@@ -51,7 +51,7 @@ def setup_logger():
     log_format = os.environ.get("LOG_FORMAT", "console").lower()
 
     if log_format == "json":
-        format_str = '{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", "level": "{level}", "service": "agent-loop", "function": "{function}", "line": {line}, "message": "{message}"}'
+        format_str = '{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", "level": "{level}", "service": "edge-agent", "function": "{function}", "line": {line}, "message": "{message}"}'
     else:
         format_str = LOG_FORMAT
 
@@ -67,7 +67,7 @@ def setup_logger():
     if log_file:
         logger.add(
             sink=log_file,
-            format='{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", "level": "{level}", "service": "agent-loop", "function": "{function}", "line": {line}, "message": "{message}"}',
+            format='{"timestamp": "{time:YYYY-MM-DDTHH:mm:ss.SSSZ}", "level": "{level}", "service": "edge-agent", "function": "{function}", "line": {line}, "message": "{message}"}',
             level=log_level,
             rotation="10 MB",
             retention="7 days",
@@ -75,7 +75,7 @@ def setup_logger():
             enqueue=True,
         )
 
-    return logger.bind(service="agent-loop")
+    return logger.bind(service="edge-agent")
 
 
 logger = setup_logger()
@@ -164,10 +164,19 @@ START_TIME = time.time()
 # ============================================================
 
 app = FastAPI(
-    title="Tanwei Agent Loop",
-    description="EdgeAgent Core - 五阶段检测工作流",
+    title="Tanwei edge-agent",
+    description="edge-agent Core - 五阶段检测工作流",
     version=AGENT_VERSION
 )
+
+
+def build_intel_contract_payload(result: dict) -> dict:
+    """
+    为后续 edge-agent -> central-agent JSON 情报契约预留映射点。
+    当前阶段保持透传，不改变现有 API 输出结构。
+    """
+    # TODO(edge-agent-contract): 在此补齐 central-agent 所需契约字段映射与版本化控制。
+    return result
 
 
 # ============================================================
@@ -341,6 +350,7 @@ async def run_detection_pipeline(task_id: str):
                     "bandwidth_saved_percent": 0.0
                 }
             }
+            task.result = build_intel_contract_payload(task.result)
             task.updated_at = time.time()
             return
 
@@ -494,7 +504,7 @@ async def run_detection_pipeline(task_id: str):
         result["metrics"]["bandwidth_saved_percent"] = max(0.0, round(bandwidth_reduction, 2))
         result["statistics"]["bandwidth_reduction"] = f"{max(0.0, round(bandwidth_reduction, 2))}%"
 
-        task.result = result
+        task.result = build_intel_contract_payload(result)
 
         logger.info(f"[Task {task_id}] Detection complete: {len(threats)} threats found")
 
@@ -529,7 +539,7 @@ async def health_check():
 
     return {
         "status": "healthy",
-        "service": "agent-loop",
+        "service": "edge-agent",
         "version": AGENT_VERSION,
         "uptime_seconds": uptime
     }
@@ -751,7 +761,7 @@ async def general_exception_handler(request, exc):
 @app.on_event("startup")
 async def startup_event():
     """应用启动事件"""
-    logger.info(f"Agent Loop starting...")
+    logger.info("edge-agent starting...")
     logger.info(f"Version: {AGENT_VERSION}")
     logger.info(f"SVM Service: {SVM_SERVICE_URL}")
     logger.info(f"LLM Service: {LLM_SERVICE_URL}")
@@ -763,13 +773,13 @@ async def startup_event():
     # 确保上传目录存在
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-    logger.info("Agent Loop started successfully")
+    logger.info("edge-agent started successfully")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭事件"""
-    logger.info("Agent Loop shutting down...")
+    logger.info("edge-agent shutting down...")
 
     # 清理上传的文件
     try:
@@ -779,7 +789,7 @@ async def shutdown_event():
     except Exception as e:
         logger.warning(f"Error cleaning up: {e}")
 
-    logger.info("Agent Loop shutdown complete")
+    logger.info("edge-agent shutdown complete")
 
 
 if __name__ == "__main__":

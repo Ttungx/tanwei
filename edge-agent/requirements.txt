@@ -1,4 +1,4 @@
-# 探微 (Tanwei) - Agent Loop 依赖
+# 探微 (Tanwei) - edge-agent 依赖
 # 严格禁止 PyTorch、TensorFlow 等重型框架
 
 # Web 框架

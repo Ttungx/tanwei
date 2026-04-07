@@ -37,7 +37,7 @@ type: project
 |------|------|------|
 | llm-service | ✅ | llama.cpp server |
 | svm-filter-service | ✅ | 32 维特征，TrafficLLM 训练 |
-| agent-loop | ✅ | 五阶段工作流 |
+| edge-agent | ✅ | 五阶段工作流 |
 | edge-test-console | ✅ | React 18 + FastAPI，已重构为桌面控制台 |
 
 > **注**: `shared/` 模块已移除，日志配置已内联到各服务中。

@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/docker--compose-3.8-blue.svg)
 ![React](https://img.shields.io/badge/react-18.3-61dafb.svg)
 
-**边缘智能体本地闭环验证平台** | **四容器微服务架构** | **带宽压降 > 70%**
+**边缘智能体本地闭环验证平台** | **console + edge-agent + central-agent 架构** | **带宽压降 > 70%**
 
 [快速开始](#快速开始) | [架构概览](#架构概览) | [API 参考](#api-参考) | [文档](#文档目录)
 
@@ -17,7 +17,7 @@
 
 ## 项目简介
 
-探微 (Tanwei) 是一个用于边缘智能体（EdgeAgent）本地闭环验证的仿真与测试系统。系统采用四容器微服务架构，实现基于离线 Pcap 流量包的威胁检测与带宽压降。
+探微 (Tanwei) 是一个用于边缘智能体（EdgeAgent）本地闭环验证的仿真与测试系统。系统采用 `console + edge-agent + central-agent` 协作架构，实现基于离线 Pcap 流量包的威胁检测与带宽压降。
 
 ### 核心特性
 
@@ -32,10 +32,10 @@
 
 | 容器               | 技术栈                                 | 端口 | 内存  |
 | ------------------ | -------------------------------------- | ---- | ----- |
-| edge-test-console  | React 18 + TypeScript + Vite + FastAPI | 3000 | 512MB |
-| agent-loop         | FastAPI + scapy + numpy                | 8002 | 500MB |
-| svm-filter-service | FastAPI + scikit-learn                 | 8001 | 300MB |
-| llm-service        | llama.cpp server                       | 8080 | 1GB   |
+| console            | React 18 + TypeScript + Vite + FastAPI | 3000 | 512MB |
+| edge-agent         | FastAPI + scapy + numpy                | 8002 | 500MB |
+| central-agent / svm-filter-service | FastAPI + scikit-learn     | 8001 | 300MB |
+| central-agent / llm-service        | llama.cpp server           | 8080 | 1GB   |
 
 ---
 
@@ -89,17 +89,17 @@ curl http://localhost:8080/health
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    EdgeAgent 四容器拓扑                          │
+│            EdgeAgent: console + edge-agent + central-agent       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   ┌───────────────────┐                                         │
-│   │ edge-test-console │ ◄── 用户上传 Pcap                        │
+│   │      console      │ ◄── 用户上传 Pcap                        │
 │   │   端口: 3000      │                                         │
 │   └────────┬──────────┘                                         │
 │            │ HTTP API (唯一入口)                                 │
 │            ▼                                                    │
 │   ┌─────────────────┐      ┌─────────────────┐                  │
-│   │   agent-loop    │─────►│  llm-service    │                  │
+│   │   edge-agent    │─────►│  llm-service    │                  │
 │   │   端口: 8002    │      │   端口: 8080     │                  │
 │   └────────┬────────┘      └─────────────────┘                  │
 │            │                                                    │
@@ -125,12 +125,12 @@ curl http://localhost:8080/health
 ### 通信边界约束
 
 ```
-edge-test-console ──► agent-loop ──► svm-filter-service
-                           │
-                           └──► llm-service
+console ──► edge-agent ──► central-agent (svm-filter-service)
+                       │
+                       └──► central-agent (llm-service)
 ```
 
-**单向调用**：前端只能调用 agent-loop，禁止跨级直接调用 SVM 或 LLM。
+**单向调用**：`console` 只能调用 `edge-agent`，禁止跨级直接调用中心推理服务。
 
 ---
 
@@ -187,10 +187,9 @@ Response: { "threats": [...], "metrics": {...} }
 │   ├── questions/              # 技术选型调研（面向人类）
 │   └── references/             # API 规范与部署指南
 │
-├── llm-service/                # 容器1: LLM 推理引擎
-├── svm-filter-service/         # 容器2: SVM 过滤服务
-├── agent-loop/                 # 容器3: 智能体主控
-├── edge-test-console/          # 容器4: 测试控制台
+├── central-agent/              # 中心侧聚合目录 (LLM/SVM 推理能力)
+├── edge-agent/                 # 边缘主控与编排
+├── console/                    # 测试控制台
 │
 ├── shared/                     # 共享模块 (日志配置等)
 ├── TrafficLLM-master/          # TrafficLLM 依赖 (外部)
@@ -225,10 +224,10 @@ docker-compose up --build -d
 
 | 模块               | 状态   | 说明                               |
 | ------------------ | ------ | ---------------------------------- |
-| llm-service        | 完成   | llama.cpp server 配置完成          |
-| svm-filter-service | 完成   | 32 维特征，TrafficLLM 多数据集训练 |
-| agent-loop         | 完成   | 五阶段工作流已实现                 |
-| edge-test-console  | 完成   | React 18 前端 + FastAPI 后端代理   |
+| central-agent / llm-service        | 完成   | llama.cpp server 配置完成          |
+| central-agent / svm-filter-service | 完成   | 32 维特征，TrafficLLM 多数据集训练 |
+| edge-agent                   | 完成   | 五阶段工作流已实现                 |
+| console                      | 完成   | React 18 前端 + FastAPI 后端代理   |
 | 端到端测试         | 进行中 | 需要更多测试 Pcap 文件             |
 
 ---

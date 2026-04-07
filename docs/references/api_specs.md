@@ -1,30 +1,63 @@
 ---
 name: api-specs
-description: 服务间 API 接口规范
+description: console / edge-agent / central-agent API 规范
 type: reference
 ---
 
-# 探微 (Tanwei) - API 接口规范
+# Tanwei API Specs
 
-## 1. 服务间通信概览
+本文档统一使用以下命名：
 
+- `console`: 管理员控制台，当前对应 `edge-test-console`
+- `edge-agent`: 边缘检测闭环核心，当前由 `agent-loop` 编排本地检测
+- `central-agent`: 云侧结构化情报归档与综合研判服务
+
+## 1. 通信概览
+
+```text
+console ─────► edge-agent
+console ─────► central-agent
+edge-agent ──► central-agent
 ```
-edge-test-console ──► agent-loop ──► svm-filter-service
-                           │
-                           └──► llm-service
+
+说明：
+
+- `console -> edge-agent` 用于发起本地检测、查看边缘检测结果。
+- `edge-agent -> central-agent` 用于上送结构化 JSON 情报报告。
+- `console -> central-agent` 用于查看 `edge1`、`edge2` 等 edge 视图，以及触发单 edge 或全网综合研判。
+
+## 2. 通用错误格式
+
+所有服务错误响应统一使用：
+
+```json
+{
+  "status": "error",
+  "error_code": "ERROR_CODE",
+  "message": "Human readable message"
+}
 ```
 
----
+常见错误码：
 
-## 2. API 详细规范
+| error_code | HTTP | 说明 |
+| --- | --- | --- |
+| `INVALID_EDGE_REPORT` | 400 | Edge JSON 情报契约不合法 |
+| `RAW_INTEL_FIELD_FORBIDDEN` | 400 | 上传内容包含原始载荷类字段 |
+| `REPORT_ID_CONFLICT` | 409 | `report_id` 已存在 |
+| `EDGE_REPORT_NOT_FOUND` | 404 | 指定 edge 没有历史报告 |
+| `NETWORK_REPORTS_NOT_FOUND` | 404 | 指定网络范围内没有可分析报告 |
+| `EXTERNAL_LLM_NOT_CONFIGURED` | 503 | central-agent 未配置外部大模型 |
+| `EXTERNAL_LLM_UNAVAILABLE` | 503 | 外部大模型调用失败 |
 
-### 2.1 edge-test-console → agent-loop
+## 3. console -> edge-agent
 
-#### POST /api/detect
+### 3.1 `POST /api/detect`
 
-**描述**：上传 Pcap 文件并启动检测流程
+用途：上传 pcap 文件并启动边缘本地检测流程。
 
-**请求**：
+请求：
+
 ```http
 POST /api/detect HTTP/1.1
 Content-Type: multipart/form-data
@@ -32,7 +65,8 @@ Content-Type: multipart/form-data
 file: <pcap_file>
 ```
 
-**响应**：
+响应：
+
 ```json
 {
   "status": "success",
@@ -41,26 +75,28 @@ file: <pcap_file>
 }
 ```
 
-#### GET /api/status/{task_id}
+### 3.2 `GET /api/status/{task_id}`
 
-**描述**：查询检测任务状态
+用途：查询边缘检测任务状态。
 
-**响应**：
+响应：
+
 ```json
 {
   "task_id": "uuid-string",
   "status": "processing|completed|failed",
   "stage": "flow_reconstruction|svm_filtering|llm_inference|completed",
   "progress": 75,
-  "message": "LLM 正在进行 Token 推理"
+  "message": "LLM inference in progress"
 }
 ```
 
-#### GET /api/result/{task_id}
+### 3.3 `GET /api/result/{task_id}`
 
-**描述**：获取检测结果
+用途：读取边缘检测的结构化结果摘要。
 
-**响应**：
+响应示例：
+
 ```json
 {
   "task_id": "uuid-string",
@@ -82,7 +118,7 @@ file: <pcap_file>
       },
       "label": "Malware",
       "confidence": 0.92,
-      "timestamp": "2026-03-30T10:30:00Z"
+      "timestamp": "2026-04-07T10:30:00Z"
     }
   ],
   "metrics": {
@@ -94,322 +130,308 @@ file: <pcap_file>
 }
 ```
 
----
+## 4. edge-agent -> central-agent
 
-### 2.2 agent-loop → svm-filter-service
+### 4.1 `POST /api/v1/reports`
 
-#### POST /api/classify
+用途：将某个 edge 的结构化 JSON 情报归档到 central-agent。
 
-**描述**：对流量特征向量进行二分类
+请求体是 Edge JSON 情报契约：
 
-**请求** (32 维特征向量，详见 `docs/references/dataset-feature-engineering.md`)：
 ```json
 {
-  "features": {
-    "avg_packet_len": 512.5,
-    "std_packet_len": 128.3,
-    "avg_ip_len": 500.0,
-    "std_ip_len": 120.5,
-    "avg_tcp_len": 460.0,
-    "std_tcp_len": 110.2,
-    "total_bytes": 5120.0,
-    "avg_ttl": 64.0,
-    "ip_proto": 6,
-    "tcp_ratio": 1.0,
-    "udp_ratio": 0.0,
-    "other_proto_ratio": 0.0,
-    "avg_window_size": 65535.0,
-    "std_window_size": 0.0,
-    "syn_count": 1,
-    "ack_count": 8,
-    "push_count": 5,
-    "fin_count": 0,
-    "rst_count": 0,
-    "avg_hdr_len": 32.0,
-    "total_duration": 30.5,
-    "avg_inter_arrival": 3.05,
-    "std_inter_arrival": 1.2,
-    "packet_rate": 0.33,
-    "src_port_entropy": 54321.0,
-    "dst_port_entropy": 443.0,
-    "well_known_port_ratio": 1.0,
-    "high_port_ratio": 0.0,
-    "unique_dst_ip_count": 1,
-    "internal_ip_ratio": 0.0,
-    "df_flag_ratio": 0.5,
-    "avg_ip_id": 0.5
+  "edge_id": "edge1",
+  "report_id": "rep-20260407-0001",
+  "source": "edge-agent",
+  "reported_at": "2026-04-07T10:30:00Z",
+  "intel": {
+    "schema_version": "edge-intel/v1",
+    "summary": {
+      "headline": "Suspicious outbound activity detected",
+      "risk_level": "high"
+    },
+    "threats": [
+      {
+        "threat_id": "threat-001",
+        "title": "Possible C2 beaconing",
+        "severity": "high",
+        "confidence": 0.92,
+        "category": "command-and-control",
+        "summary": "Repeated outbound callbacks to a rare destination.",
+        "evidence": {
+          "five_tuple": {
+            "src_ip": "192.168.1.10",
+            "src_port": 49231,
+            "dst_ip": "203.0.113.8",
+            "dst_port": 443,
+            "protocol": "TCP"
+          },
+          "packet_count": 10,
+          "byte_count": 5120
+        }
+      }
+    ],
+    "statistics": {
+      "total_flows": 150,
+      "anomalous_flows": 2
+    },
+    "metrics": {
+      "processing_time_ms": 1250,
+      "bandwidth_saved_percent": 78.5
+    },
+    "tags": ["site-a", "edge1", "high-priority"],
+    "context": {
+      "site_name": "branch-a",
+      "model_version": "qwen3.5-0.8b",
+      "window_start": "2026-04-07T10:29:00Z",
+      "window_end": "2026-04-07T10:30:00Z"
+    }
   }
 }
 ```
 
-**响应**：
+成功响应：
+
 ```json
 {
-  "prediction": 1,
-  "label": "anomaly",
-  "confidence": 0.87,
-  "latency_ms": 0.15
+  "status": "stored",
+  "report_id": "rep-20260407-0001",
+  "edge_id": "edge1",
+  "reported_at": "2026-04-07T10:30:00+00:00",
+  "received_at": "2026-04-07T10:30:01+00:00"
 }
 ```
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| prediction | int | 0: 正常, 1: 疑似异常 |
-| label | string | "normal" 或 "anomaly" |
-| confidence | float | 置信度 (0.0-1.0) |
-| latency_ms | float | 推理延迟（毫秒） |
+### 4.2 Edge JSON 情报契约约束
 
-**特征维度说明** (32 维)：
+允许字段：
 
-| 类别 | 索引 | 特征名 | 说明 |
-|------|------|--------|------|
-| A. 基础统计 | 0-7 | avg_packet_len, std_packet_len, ... | 包长度统计、TTL 等 |
-| B. 协议类型 | 8-11 | ip_proto, tcp_ratio, ... | 协议分布 |
-| C. TCP 行为 | 12-19 | avg_window_size, syn_count, ... | TCP 标志与窗口 |
-| D. 时间特征 | 20-23 | total_duration, packet_rate, ... | 时间统计 |
-| E. 端口特征 | 24-27 | src_port_entropy, well_known_port_ratio, ... | 端口分布 |
-| F. 地址特征 | 28-31 | unique_dst_ip_count, internal_ip_ratio, ... | IP 地址特征 |
+- `edge_id`
+- `report_id`
+- `source`
+- `reported_at`
+- `intel.schema_version`
+- `intel.summary`
+- `intel.threats`
+- `intel.statistics`
+- `intel.metrics`
+- `intel.tags`
+- `intel.context`
 
-详细特征定义请参考 `docs/references/dataset-feature-engineering.md`。
+禁止字段：
 
----
+- 原始 `pcap`
+- 原始 `payload`
+- `payload_hex`
+- `raw_payload`
+- `flow_text`
+- 语义等价变体，例如 `rawpacket`、`packet_hex`、`application_payload`
 
-### 2.3 agent-loop → llm-service
+规则：
 
-#### POST /completion
+- central-agent 只接收结构化 JSON 情报，不接收原始包或应用层内容。
+- 任意层级出现禁止字段都应返回 `400`。
+- `edge_id` 视图采用显式命名，例如 `edge1`、`edge2`。
 
-**描述**：调用 llama.cpp server 进行文本补全
+## 5. console -> central-agent
 
-**请求**：
+### 5.1 `GET /api/v1/edges`
+
+用途：列出当前 central-agent 中已有归档的 edge 视图。
+
+响应示例：
+
 ```json
 {
-  "prompt": "Given the following traffic data <packet>: ...\nPlease classify this traffic:",
-  "n_predict": 64,
-  "temperature": 0.1,
-  "stop": ["</s>", "\n"]
+  "edges": [
+    {
+      "edge_id": "edge1",
+      "report_count": 5,
+      "latest_reported_at": "2026-04-07T10:30:00+00:00",
+      "latest_received_at": "2026-04-07T10:30:01+00:00"
+    },
+    {
+      "edge_id": "edge2",
+      "report_count": 3,
+      "latest_reported_at": "2026-04-07T10:28:00+00:00",
+      "latest_received_at": "2026-04-07T10:28:01+00:00"
+    }
+  ]
 }
 ```
 
-**响应**：
+### 5.2 `GET /api/v1/edges/{edge_id}/reports`
+
+用途：查看某个 edge 的历史报告。
+
+查询参数：
+
+- `limit`: 默认 `20`，范围 `1-100`
+
+响应示例：
+
 ```json
 {
-  "content": "Malware Traffic",
-  "tokens_evaluated": 156,
-  "tokens_predicted": 3,
-  "timings": {
-    "prompt_ms": 45.2,
-    "predicted_ms": 12.8,
-    "total_ms": 58.0
-  }
+  "edge_id": "edge1",
+  "reports": [
+    {
+      "report_id": "rep-20260407-0001",
+      "edge_id": "edge1",
+      "source": "edge-agent",
+      "reported_at": "2026-04-07T10:30:00+00:00",
+      "received_at": "2026-04-07T10:30:01+00:00",
+      "report": {
+        "schema_version": "edge-intel/v1",
+        "summary": {
+          "headline": "Suspicious outbound activity detected"
+        },
+        "threats": [],
+        "statistics": {},
+        "metrics": {},
+        "tags": ["edge1"],
+        "context": {}
+      }
+    }
+  ]
 }
 ```
 
----
+### 5.3 `GET /api/v1/edges/{edge_id}/reports/latest`
 
-### 2.4 健康检查接口
+用途：查看某个 edge 的最新一份报告。
 
-所有服务均需实现健康检查端点：
+响应体与单个 `report` 对象一致。
 
-#### GET /health
+### 5.4 `POST /api/v1/edges/{edge_id}/analyze`
 
-**响应**：
+用途：基于某个 edge 最近 N 份历史报告做单 edge 分析。
+
+请求示例：
+
+```json
+{
+  "question": "Summarize the most important risks and response priorities for this edge.",
+  "instructions": "Prioritize actions for branch office responders.",
+  "max_reports": 5
+}
+```
+
+响应示例：
+
+```json
+{
+  "analysis_id": "0a8f8b57-5c2a-4d37-b815-0d228f143739",
+  "scope": "edge",
+  "edge_id": "edge1",
+  "edge_ids": ["edge1"],
+  "analyzed_report_count": 5,
+  "provider_response_id": "resp_123",
+  "model": "gpt-4o-mini",
+  "analysis": {
+    "summary": "edge1 shows repeated outbound suspicious activity.",
+    "findings": [
+      "Likely beaconing behavior persisted across multiple reports."
+    ],
+    "recommended_actions": [
+      "Isolate the affected host.",
+      "Block the destination IP at the branch firewall."
+    ],
+    "confidence_notes": "Assessment is based only on structured edge intelligence."
+  },
+  "source_reports": [
+    {
+      "report_id": "rep-20260407-0001",
+      "edge_id": "edge1",
+      "reported_at": "2026-04-07T10:30:00+00:00",
+      "source": "edge-agent"
+    }
+  ]
+}
+```
+
+说明：
+
+- 这是“每个 edge 可单独分析”的正式接口。
+- 若 central-agent 未配置 `EXTERNAL_LLM_BASE_URL` 或 `EXTERNAL_LLM_API_KEY`，返回 `503`。
+
+### 5.5 `POST /api/v1/network/analyze`
+
+用途：管理员手动触发全网综合研判。
+
+请求示例：
+
+```json
+{
+  "edge_ids": ["edge1", "edge2"],
+  "question": "Compare edges, identify correlated risks, and recommend network-wide response priorities.",
+  "instructions": "Focus on shared indicators and the first three containment actions.",
+  "max_reports_per_edge": 3
+}
+```
+
+响应示例：
+
+```json
+{
+  "analysis_id": "4e749462-d182-4efa-b9b9-5721c2cbb4a3",
+  "scope": "network",
+  "edge_id": null,
+  "edge_ids": ["edge1", "edge2"],
+  "analyzed_report_count": 6,
+  "provider_response_id": "resp_456",
+  "model": "gpt-4o-mini",
+  "analysis": {
+    "summary": "edge1 and edge2 exhibit overlapping suspicious outbound patterns.",
+    "findings": [
+      "Both edges reference the same destination cluster.",
+      "The activity window overlaps by 15 minutes."
+    ],
+    "recommended_actions": [
+      "Block shared infrastructure indicators centrally.",
+      "Pull endpoint triage from both sites.",
+      "Escalate to incident commander for coordinated response."
+    ],
+    "confidence_notes": "Cross-edge analysis is limited to uploaded structured JSON intelligence."
+  },
+  "source_reports": [
+    {
+      "report_id": "rep-edge1-001",
+      "edge_id": "edge1",
+      "reported_at": "2026-04-07T10:30:00+00:00",
+      "source": "edge-agent"
+    },
+    {
+      "report_id": "rep-edge2-001",
+      "edge_id": "edge2",
+      "reported_at": "2026-04-07T10:28:00+00:00",
+      "source": "edge-agent"
+    }
+  ]
+}
+```
+
+说明：
+
+- 这是“管理员手动触发全网综合研判”的接口。
+- `edge_ids` 为空时，central-agent 可以对当前已归档的全部 edge 进行聚合。
+- 该接口不属于 edge-agent 本地自动检测链路，不应成为边缘站点运行前提。
+
+## 6. 健康检查
+
+### `GET /health`
+
+central-agent 响应示例：
+
 ```json
 {
   "status": "healthy",
-  "service": "agent-loop",
+  "service": "central-agent",
   "version": "1.0.0",
-  "uptime_seconds": 3600
+  "external_llm_configured": true
 }
 ```
 
----
+说明：
 
-## 3. 错误响应格式
-
-所有 API 在出错时返回统一格式：
-
-```json
-{
-  "status": "error",
-  "error_code": "INVALID_PCAP_FILE",
-  "message": "The uploaded file is not a valid PCAP format",
-  "details": {
-    "filename": "test.pcap",
-    "expected_format": "pcap or pcapng"
-  }
-}
-```
-
-### 错误码定义
-
-| 错误码 | HTTP 状态码 | 说明 |
-|--------|-------------|------|
-| INVALID_PCAP_FILE | 400 | 无效的 Pcap 文件格式 |
-| SVM_SERVICE_UNAVAILABLE | 503 | SVM 服务不可用 |
-| LLM_SERVICE_UNAVAILABLE | 503 | LLM 服务不可用 |
-| TASK_NOT_FOUND | 404 | 任务 ID 不存在 |
-| INTERNAL_ERROR | 500 | 内部服务错误 |
-
----
-
-## 4. 流水线状态枚举
-
-| 状态 | 说明 |
-|------|------|
-| `pending` | 任务等待处理 |
-| `flow_reconstruction` | 正在提取五元组、重组流 |
-| `svm_filtering` | SVM 初筛丢弃正常流量 |
-| `llm_inference` | 大模型正在进行 Token 推理 |
-| `completed` | 检测完成 |
-| `failed` | 检测失败 |
-
----
-
-## 5. JSON 结构化日志格式
-
-agent-loop 返回给 edge-test-console 的最终 JSON 格式：
-
-```json
-{
-  "meta": {
-    "task_id": "uuid-string",
-    "timestamp": "2026-03-30T10:30:00Z",
-    "agent_version": "1.0.0",
-    "processing_time_ms": 1250
-  },
-  "statistics": {
-    "total_packets": 1500,
-    "total_flows": 150,
-    "normal_flows_dropped": 148,
-    "anomaly_flows_detected": 2,
-    "svm_filter_rate": "98.67%",
-    "bandwidth_reduction": "78.5%"
-  },
-  "threats": [
-    {
-      "id": "threat-001",
-      "five_tuple": {
-        "src_ip": "192.168.1.100",
-        "src_port": 54321,
-        "dst_ip": "10.0.0.1",
-        "dst_port": 443,
-        "protocol": "TCP"
-      },
-      "classification": {
-        "primary_label": "Malware",
-        "secondary_label": "Botnet",
-        "confidence": 0.92,
-        "model": "Qwen3.5-0.8B"
-      },
-      "flow_metadata": {
-        "start_time": "2026-03-30T10:29:30Z",
-        "end_time": "2026-03-30T10:30:00Z",
-        "packet_count": 10,
-        "byte_count": 5120,
-        "avg_packet_size": 512.0
-      },
-      "token_info": {
-        "token_count": 156,
-        "truncated": false
-      }
-    }
-  ],
-  "metrics": {
-    "original_pcap_size_bytes": 1048576,
-    "json_output_size_bytes": 225280,
-    "bandwidth_saved_percent": 78.5
-  }
-}
-```
-
----
-
-## 6. 调用示例
-
-### 6.1 完整检测流程
-
-```bash
-# 1. 上传 Pcap 文件
-curl -X POST http://localhost:3000/api/detect \
-  -F "file=@test.pcap"
-
-# 响应: {"task_id": "abc-123", ...}
-
-# 2. 轮询状态
-curl http://localhost:3000/api/status/abc-123
-
-# 响应: {"stage": "llm_inference", "progress": 75, ...}
-
-# 3. 获取结果
-curl http://localhost:3000/api/result/abc-123
-
-# 响应: 完整的 JSON 结构化日志
-```
-
-### 6.2 直接调用 SVM 服务（仅限 agent-loop 内部）
-
-```bash
-curl -X POST http://svm-filter-service:8001/api/classify \
-  -H "Content-Type: application/json" \
-  -d '{"features": {...}}'
-```
-
-### 6.3 直接调用 LLM 服务（仅限 agent-loop 内部）
-
-```bash
-curl -X POST http://llm-service:8080/completion \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "...", "n_predict": 64}'
-```
-
----
-
-## 7. 端口汇总
-
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| edge-test-console | 3000 | Web 控制台（对外开放） |
-| agent-loop | 8002 | 主控程序 |
-| svm-filter-service | 8001 | SVM 过滤服务 |
-| llm-service | 8080 | LLM 推理服务 |
-
----
-
-## 8. 版本信息
-
-- **API 版本**：1.1.0
-- **更新日期**：2026-04-06
-- **维护者**：探微架构团队
-
----
-
-## 9. 演示样本 API (新增)
-
-### 9.1 GET /api/demo-samples
-
-**描述**：获取内置演示样本列表
-
-**响应**：
-```json
-[
-  {
-    "id": "dns-tunnel.pcapng",
-    "filename": "dns-tunnel.pcapng",
-    "display_name": "dns tunnel",
-    "size_bytes": 4096
-  }
-]
-```
-
-### 9.2 POST /api/detect-demo
-
-**描述**：使用演示样本启动检测任务
-
-**请求**：
-```json
-{
-  "sample_id": "dns-tunnel.pcapng"
-}
-```
-
-**响应**：同 `POST /api/detect`
+- `external_llm_configured=false` 不代表服务不可用，只表示分析接口会返回 `503`。
+- 报告归档、edge 列表查询、历史报告查询仍应正常工作。
