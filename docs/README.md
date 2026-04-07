@@ -15,7 +15,7 @@ docs/
 │   ├── active-plan.md
 │   ├── completed/
 │   └── tech-debt.md
-├── questions/               # 技术选型调研与决策记录
+├── questions/               # 技术选型调研与决策记录（面向人类，agent 默认不读取）
 │   └── why-svm-for-traffic-filtering.md
 ├── references/              # 可直接给 agent 消费的参考手册
 │   ├── api_specs.md
@@ -36,7 +36,7 @@ docs/
 | 改训练、特征或评估 | `references/dataset-feature-engineering.md` |
 | 改部署和容器 | `references/deployment.md` |
 | 了解 agent 协作方式 | `references/agent-harness.md` |
-| 了解技术选型决策 | `questions/why-svm-for-traffic-filtering.md` |
+| 了解技术选型决策（人类阅读） | `questions/why-svm-for-traffic-filtering.md` |
 
 ## Documentation Rules
 
@@ -44,6 +44,7 @@ docs/
 2. `CLAUDE.md` 是地图，不是巨型操作手册。
 3. 行为改变时，相关文档必须同步更新。
 4. 技术债应被记录，而不是隐藏在对话里。
+5. `questions/` 目录是技术选型调研报告，面向人类读者；agent 除非被明确指定否则不读取。
 
 ## Maintenance Loop
 

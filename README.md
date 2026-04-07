@@ -169,6 +169,7 @@ Response: { "threats": [...], "metrics": {...} }
 | [docs/references/dataset-feature-engineering.md](docs/references/dataset-feature-engineering.md) | 数据集与特征工程             |
 | [docs/exec-plans/active-plan.md](docs/exec-plans/active-plan.md)                                 | 当前执行计划                 |
 | [docs/exec-plans/tech-debt.md](docs/exec-plans/tech-debt.md)                                     | 技术债务追踪                 |
+| [docs/questions/why-svm-for-traffic-filtering.md](docs/questions/why-svm-for-traffic-filtering.md) | SVM 流量初筛技术选型调研报告 |
 
 ---
 
@@ -183,6 +184,7 @@ Response: { "threats": [...], "metrics": {...} }
 ├── docs/                       # 文档目录
 │   ├── design-docs/            # 架构设计
 │   ├── exec-plans/             # 执行计划与技术债
+│   ├── questions/              # 技术选型调研（面向人类）
 │   └── references/             # API 规范与部署指南
 │
 ├── llm-service/                # 容器1: LLM 推理引擎

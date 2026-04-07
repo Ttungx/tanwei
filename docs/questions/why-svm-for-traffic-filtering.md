@@ -1,7 +1,7 @@
 ---
 name: why-svm-for-traffic-filtering
-description: SVM 流量初筛方案选型调研——为何不采用业界已有方案
-type: reference
+description: SVM 流量初筛方案选型调研——为何不采用业界已有方案（面向人类）
+type: decision-record
 ---
 
 # SVM 流量初筛方案选型调研报告
