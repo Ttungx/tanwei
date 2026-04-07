@@ -15,6 +15,8 @@ docs/
 │   ├── active-plan.md
 │   ├── completed/
 │   └── tech-debt.md
+├── questions/               # 技术选型调研与决策记录
+│   └── why-svm-for-traffic-filtering.md
 ├── references/              # 可直接给 agent 消费的参考手册
 │   ├── api_specs.md
 │   ├── deployment.md
@@ -34,6 +36,7 @@ docs/
 | 改训练、特征或评估 | `references/dataset-feature-engineering.md` |
 | 改部署和容器 | `references/deployment.md` |
 | 了解 agent 协作方式 | `references/agent-harness.md` |
+| 了解技术选型决策 | `questions/why-svm-for-traffic-filtering.md` |
 
 ## Documentation Rules
 

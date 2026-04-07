@@ -67,7 +67,7 @@ Before finalizing any output:
 
 # Persistent Agent Memory
 
-You have a persistent, file-based memory system at `/root/anxun/.claude/agent-memory/lead-agent/`. If this directory does not exist yet, create and use it as this agent's memory home.
+You have a persistent, file-based memory system at `/root/anxun/.claude/agent-memory/lead-agent/`. This directory already exists — write to it directly with the Write tool (do not run mkdir or check for its existence).
 
 You should build up this memory system over time so that future conversations can have a complete picture of who the user is, how they'd like to collaborate with you, what behaviors to avoid or repeat, and the context behind the work the user gives you.
 

@@ -21,21 +21,21 @@
 
 ### 核心特性
 
-| 特性 | 说明 |
-|------|------|
-| **四级漏斗过滤** | SVM 微秒级初筛 + LLM 深度推理 |
-| **带宽压降 > 70%** | 原始流量转换为 JSON 威胁情报 |
-| **边缘模型** | Qwen3.5-0.8B INT4 量化，CPU 推理 |
-| **可视化控制台** | React 18 + FastAPI 实时流水线状态 |
+| 特性               | 说明                              |
+| ------------------ | --------------------------------- |
+| **四级漏斗过滤**   | SVM 微秒级初筛 + LLM 深度推理     |
+| **带宽压降 > 70%** | 原始流量转换为 JSON 威胁情报      |
+| **边缘模型**       | Qwen3.5-0.8B INT4 量化，CPU 推理  |
+| **可视化控制台**   | React 18 + FastAPI 实时流水线状态 |
 
 ### 技术栈
 
-| 容器 | 技术栈 | 端口 | 内存 |
-|------|--------|------|------|
-| edge-test-console | React 18 + TypeScript + Vite + FastAPI | 3000 | 512MB |
-| agent-loop | FastAPI + scapy + numpy | 8002 | 500MB |
-| svm-filter-service | FastAPI + scikit-learn | 8001 | 300MB |
-| llm-service | llama.cpp server | 8080 | 1GB |
+| 容器               | 技术栈                                 | 端口 | 内存  |
+| ------------------ | -------------------------------------- | ---- | ----- |
+| edge-test-console  | React 18 + TypeScript + Vite + FastAPI | 3000 | 512MB |
+| agent-loop         | FastAPI + scapy + numpy                | 8002 | 500MB |
+| svm-filter-service | FastAPI + scikit-learn                 | 8001 | 300MB |
+| llm-service        | llama.cpp server                       | 8080 | 1GB   |
 
 ---
 
@@ -92,35 +92,35 @@ curl http://localhost:8080/health
 │                    EdgeAgent 四容器拓扑                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│   ┌─────────────────┐                                           │
+│   ┌───────────────────┐                                         │
 │   │ edge-test-console │ ◄── 用户上传 Pcap                        │
-│   │   端口: 3000     │                                          │
-│   └────────┬────────┘                                           │
+│   │   端口: 3000      │                                         │
+│   └────────┬──────────┘                                         │
 │            │ HTTP API (唯一入口)                                 │
-│            ▼                                                     │
+│            ▼                                                    │
 │   ┌─────────────────┐      ┌─────────────────┐                  │
 │   │   agent-loop    │─────►│  llm-service    │                  │
-│   │   端口: 8002     │      │   端口: 8080    │                  │
+│   │   端口: 8002    │      │   端口: 8080     │                  │
 │   └────────┬────────┘      └─────────────────┘                  │
-│            │                                                     │
-│            ▼                                                     │
-│   ┌─────────────────┐                                           │
+│            │                                                    │
+│            ▼                                                    │
+│   ┌──────────────────┐                                          │
 │   │svm-filter-service│ ◄── 微秒级二分类                          │
-│   │   端口: 8001     │                                          │
-│   └─────────────────┘                                           │
+│   │   端口: 8001      │                                         │
+│   └──────────────────┘                                          │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### 五阶段检测工作流
 
-| 阶段 | 名称 | 说明 |
-|------|------|------|
-| 1 | 流重组 | 基于五元组的双向流重组 |
-| 2 | 双重截断 | 时间窗口 <= 60s，包数量 <= 10 |
-| 3 | SVM 初筛 | 微秒级二分类，过滤正常流量 |
-| 4 | 跨模态分词 | TrafficLLM 分词，Token 序列 <= 690 |
-| 5 | LLM 推理 | Qwen3.5-0.8B 定性标签 |
+| 阶段 | 名称       | 说明                               |
+| ---- | ---------- | ---------------------------------- |
+| 1    | 流重组     | 基于五元组的双向流重组             |
+| 2    | 双重截断   | 时间窗口 <= 60s，包数量 <= 10      |
+| 3    | SVM 初筛   | 微秒级二分类，过滤正常流量         |
+| 4    | 跨模态分词 | TrafficLLM 分词，Token 序列 <= 690 |
+| 5    | LLM 推理   | Qwen3.5-0.8B 定性标签              |
 
 ### 通信边界约束
 
@@ -158,17 +158,17 @@ Response: { "threats": [...], "metrics": {...} }
 
 ## 文档目录
 
-| 文档 | 说明 |
-|------|------|
-| [CLAUDE.md](CLAUDE.md) | 项目全局指引与 AI Agent 路由 |
-| [docs/design-docs/architecture.md](docs/design-docs/architecture.md) | 四容器拓扑与边界规范 |
-| [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md) | 核心信仰与物理约束红线 |
-| [docs/design-docs/traffic-tokenization.md](docs/design-docs/traffic-tokenization.md) | 流量分词规范 |
-| [docs/references/api_specs.md](docs/references/api_specs.md) | API 接口规范 |
-| [docs/references/deployment.md](docs/references/deployment.md) | 部署指南 |
-| [docs/references/dataset-feature-engineering.md](docs/references/dataset-feature-engineering.md) | 数据集与特征工程 |
-| [docs/exec-plans/active-plan.md](docs/exec-plans/active-plan.md) | 当前执行计划 |
-| [docs/exec-plans/tech-debt.md](docs/exec-plans/tech-debt.md) | 技术债务追踪 |
+| 文档                                                                                             | 说明                         |
+| ------------------------------------------------------------------------------------------------ | ---------------------------- |
+| [CLAUDE.md](CLAUDE.md)                                                                           | 项目全局指引与 AI Agent 路由 |
+| [docs/design-docs/architecture.md](docs/design-docs/architecture.md)                             | 四容器拓扑与边界规范         |
+| [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md)                             | 核心信仰与物理约束红线       |
+| [docs/design-docs/traffic-tokenization.md](docs/design-docs/traffic-tokenization.md)             | 流量分词规范                 |
+| [docs/references/api_specs.md](docs/references/api_specs.md)                                     | API 接口规范                 |
+| [docs/references/deployment.md](docs/references/deployment.md)                                   | 部署指南                     |
+| [docs/references/dataset-feature-engineering.md](docs/references/dataset-feature-engineering.md) | 数据集与特征工程             |
+| [docs/exec-plans/active-plan.md](docs/exec-plans/active-plan.md)                                 | 当前执行计划                 |
+| [docs/exec-plans/tech-debt.md](docs/exec-plans/tech-debt.md)                                     | 技术债务追踪                 |
 
 ---
 
@@ -221,19 +221,19 @@ docker-compose up --build -d
 
 ## 项目状态
 
-| 模块 | 状态 | 说明 |
-|------|------|------|
-| llm-service | 完成 | llama.cpp server 配置完成 |
-| svm-filter-service | 完成 | 32 维特征，TrafficLLM 多数据集训练 |
-| agent-loop | 完成 | 五阶段工作流已实现 |
-| edge-test-console | 完成 | React 18 前端 + FastAPI 后端代理 |
-| 端到端测试 | 进行中 | 需要更多测试 Pcap 文件 |
+| 模块               | 状态   | 说明                               |
+| ------------------ | ------ | ---------------------------------- |
+| llm-service        | 完成   | llama.cpp server 配置完成          |
+| svm-filter-service | 完成   | 32 维特征，TrafficLLM 多数据集训练 |
+| agent-loop         | 完成   | 五阶段工作流已实现                 |
+| edge-test-console  | 完成   | React 18 前端 + FastAPI 后端代理   |
+| 端到端测试         | 进行中 | 需要更多测试 Pcap 文件             |
 
 ---
 
 ## 许可证
 
-MIT License
+Apache 2.0 License
 
 ---
 
