@@ -3,7 +3,7 @@
 ---
 
 ## 更新代办记录
-2026年3月30日 23点01分 更新后待测试
+[ ] 更新agents.md -> doc-agent尽快维护文档 -> 添加feat/fix bug
 
 ## 近期
 [x] svm模型训练：使用trafficllm提供的数据集快速训练
