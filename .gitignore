@@ -15,6 +15,7 @@ docs/superpowers
 .claude/settings.local.json
 .claude/agent-memory/
 .codex
+.worktrees/
 
 # LLM model files (large binary files)
 qwen3.5-0.8b/
