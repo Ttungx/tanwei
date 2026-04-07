@@ -1,19 +1,19 @@
 ---
 name: harness-engineering
-description: OpenAI Harness Engineering 文章的项目化摘要与 Tanwei 落地原则
+description: Harness Engineering 在 console + edge-agent + central-agent 架构中的落地规范
 type: reference
 ---
 
 # Harness Engineering
 
-## Source
+## 1. Source
 
 - OpenAI, "Harness engineering: leveraging Codex in an agent-first world", published 2026-02-11
 - URL: https://openai.com/index/harness-engineering/
 
-## What Matters For This Repository
+## 2. What Matters For This Repository
 
-这篇文章对本项目最重要的不是“多 agent”，而是下面这些控制面原则：
+本仓库关注的不是“agent 数量”，而是可验证的控制面机制：
 
 1. Humans steer. Agents execute.
 2. Repository knowledge must be the system of record.
@@ -21,37 +21,47 @@ type: reference
 4. Architecture and taste should be enforced mechanically where possible.
 5. Repeated failures should become new tools, docs, checks, or cleanup loops.
 
-## Tanwei Translation
+## 3. Tanwei Translation
 
-在探微项目中，这些原则落地为：
+在 `console + edge-agent + central-agent` 架构下，以上原则落实为：
 
-- `CLAUDE.md` 只保留地图、红线和文档入口
-- 结构化知识进入 `docs/`
-- Claude Code agents 的职责边界写入 `.claude/agents/`
-- agent 文件本身要具备触发样例、边界、质量门和输出契约，而不是只有宽泛角色描述
-- `lead-agent -> execution agent -> evaluator-agent -> doc-gardener` 成为默认闭环
-- 技术债、计划状态、架构约束都必须 repo 可见
+- `console` 作为统一控制台，避免多入口分叉治理。
+- `edge-agent` 与 `central-agent` 职责解耦，边缘检测与中心分析分离。
+- 端云 JSON 情报契约写入文档并由 schema 约束。
+- 禁止原始 pcap/payload 上云成为硬红线，不允许口头约定。
+- 全网综合研判只允许手动触发，避免误触发自动联动。
 
-## Documentation Implications
+## 4. Required Repo Assets
 
-根据文章思路，本仓库文档系统应满足：
+- `CLAUDE.md`: 只保留地图、红线与入口。
+- `docs/design-docs/architecture.md`: 架构与端云边界真源。
+- `docs/references/api_specs.md`: 接口与契约真源。
+- `docs/references/deployment.md`: 运行依赖与失败策略真源。
+- `docs/references/agent-harness.md`: 路由、ownership、handoff 真源。
+- `docs/exec-plans/*.md`: 当前计划与技术债真源。
+
+## 5. Documentation Implications
+
+文档体系必须满足：
 
 - 渐进展开，而不是单文件灌输
-- 文档分类清楚：设计、计划、参考、agent 路由
-- 每条重要规则有明确归属文件
-- 行为变化时，相关文档同步更新
+- 分类清楚：设计、计划、参考、agent 路由
+- 每条关键规则有明确归属文件
+- 行为变化时同步更新相关文档
+- 端云契约变更必须至少同步 `architecture/api_specs/deployment`
 
-## Harness Checklist
+## 6. Harness Checklist
 
 完成复杂工作时，至少检查：
 
 - 任务是否先被拆成 agent-size 子任务
-- 接口、边界、性能约束是否写成 repo 可见规则
+- 接口、边界、性能与安全约束是否 repo 可见
 - 验收是否由独立评估角色完成
 - 文档是否跟真实实现一致
 - 重复失败是否转化成新的 harness 资产
+- 是否确认“单 Edge 可独立分析 + 全网手动触发”未被破坏
 
-## Recommended Follow-up Assets
+## 7. Recommended Follow-up Assets
 
 - `docs/design-docs/agent-operating-model.md`
 - `docs/references/agent-harness.md`

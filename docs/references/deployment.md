@@ -1,474 +1,147 @@
-# 部署指南
-
-本文档详细介绍如何在不同的环境中部署探微 (Tanwei) 系统。
-
+---
+name: deployment
+description: console + edge-agent + central-agent 的部署模式、环境变量与失败策略
+type: reference
 ---
 
-## 目录
+# 部署指南（Console + Edge + Central）
 
-- [环境要求](#环境要求)
-- [本地部署](#本地部署)
-- [生产环境部署](#生产环境部署)
-- [离线部署](#离线部署)
-- [Kubernetes 部署](#kubernetes-部署)
-- [配置调优](#配置调优)
+## 1. 目标拓扑
 
----
+```text
+console -> edge-agent -> svm-filter-service / llm-service
+console -> central-agent
+edge-agent -> central-agent (结构化情报上报)
+```
 
-## 环境要求
+关键约束：
 
-### 硬件要求
+- `console` 是统一控制台入口。
+- `edge-agent` 保持本地检测闭环可独立运行。
+- `central-agent` 只消费结构化 JSON，不接收原始 pcap/payload。
+- 全网综合研判仅手动触发，不自动调度。
 
-| 环境 | CPU | 内存 | 磁盘 | 说明 |
-|------|-----|------|------|------|
-| 开发环境 | 2 核 | 4 GB | 10 GB | 基本运行 |
-| 测试环境 | 4 核 | 8 GB | 20 GB | 推荐配置 |
-| 生产环境 | 4 核+ | 8 GB+ | 50 GB | 根据负载调整 |
+## 2. 资源与依赖
 
-### 软件要求
+### 2.1 硬件建议
+
+| 环境 | CPU | 内存 | 磁盘 |
+|------|------|------|------|
+| 开发/演示 | 4 cores | 8 GB | 20 GB |
+| 边缘节点 | 2-4 cores | 2-4 GB | 10-50 GB SSD |
+| 中心节点（不含大模型本地推理） | 2+ cores | 2+ GB | 10+ GB |
+
+### 2.2 软件版本
 
 | 软件 | 最低版本 | 推荐版本 |
-|------|----------|----------|
+|------|------|------|
 | Docker | 20.10 | 24.0+ |
 | Docker Compose | 2.0 | 2.20+ |
 | Linux Kernel | 4.18 | 5.10+ |
 
-### 网络要求
+## 3. 端口与暴露策略
 
-| 端口 | 服务 | 协议 |
+| 服务 | 容器端口 | 暴露策略 |
 |------|------|------|
-| 3000 | Web 控制台 | HTTP |
-| 8001 | SVM 服务 | HTTP |
-| 8002 | Agent 服务 | HTTP |
-| 8080 | LLM 服务 | HTTP |
+| `console` | 8000 | 映射宿主 `3000`（唯一外部入口） |
+| `edge-agent` | 8002 | 内网访问 |
+| `central-agent` | 8003 | 内网访问 |
+| `svm-filter-service` | 8001 | 内网访问 |
+| `llm-service` | 8080 | 内网访问 |
 
----
+## 4. 环境变量
 
-## 本地部署
+### 4.1 console
 
-### 步骤 1：准备模型文件
+| 变量 | 默认值 | 说明 |
+|------|------|------|
+| `EDGE_AGENT_URL` | `http://edge-agent:8002` | console -> edge-agent |
+| `CENTRAL_AGENT_URL` | `http://central-agent:8003` | console -> central-agent |
+| `LOG_LEVEL` | `INFO` | 日志级别 |
+| `DEMO_SAMPLES_DIR` | `/app/demo-samples` | 演示样本路径 |
 
-```bash
-# 检查模型文件是否存在
-ls -la /root/anxun/qwen3.5-0.8b/Qwen3.5-0.8B-Q4_K_M.gguf
+### 4.2 edge-agent
 
-# 预期大小：约 508MB
-```
+| 变量 | 默认值 | 说明 |
+|------|------|------|
+| `SVM_SERVICE_URL` | `http://svm-filter-service:8001` | SVM 初筛服务 |
+| `LLM_SERVICE_URL` | `http://llm-service:8080` | 本地 LLM 推理服务 |
+| `MAX_TIME_WINDOW` | `60` | 时间窗截断 |
+| `MAX_PACKET_COUNT` | `10` | 包数截断 |
+| `MAX_TOKEN_LENGTH` | `690` | token 长度上限 |
+| `LOG_LEVEL` | `INFO` | 日志级别 |
 
-如果模型文件不存在，需要从 HuggingFace 或其他源下载 Qwen3.5-0.8B Q4_K_M 量化版本。
+### 4.3 central-agent
 
-### 步骤 2：配置环境变量（可选）
+| 变量 | 默认值 | 说明 |
+|------|------|------|
+| `EXTERNAL_LLM_BASE_URL` | 空 | 外部 LLM Base URL（必填） |
+| `EXTERNAL_LLM_API_KEY` | 空 | 外部 LLM API Key（必填） |
+| `EXTERNAL_LLM_MODEL` | `gpt-4.1-mini` | 推理模型 |
 
-```bash
-# 创建 .env 文件
-cat > /root/anxun/.env << EOF
-# 服务配置
-LOG_LEVEL=INFO
-MAX_TIME_WINDOW=60
-MAX_PACKET_COUNT=10
-MAX_TOKEN_LENGTH=690
+说明：`central-agent` 不本地加载巨型模型，只通过外部 LLM API 工作。
 
-# 资源限制
-LLM_MEMORY=1G
-SVM_MEMORY=300M
-AGENT_MEMORY=500M
-CONSOLE_MEMORY=512M
-EOF
-```
+## 5. 部署模式
 
-### 步骤 3：构建并启动
+### 5.1 模式 A：边缘闭环（不含 central-agent）
 
-```bash
-cd /root/anxun
-
-# 构建所有镜像
-docker-compose build --no-cache
-
-# 启动服务
-docker-compose up -d
-
-# 查看启动日志
-docker-compose logs -f
-```
-
-### 步骤 4：验证部署
+用于仅验证边缘检测链路：
 
 ```bash
-# 检查容器状态
-docker-compose ps
-
-# 健康检查
-curl -s http://localhost:8080/health | jq
-curl -s http://localhost:8001/health | jq
-curl -s http://localhost:8002/health | jq
-curl -s http://localhost:3000/health | jq
+docker compose up -d llm-service svm-filter-service edge-agent console
 ```
 
----
+此模式下，`console` 的中央分析入口不可用，但边缘检测闭环应可正常工作。
+`console` 不应对 `central-agent` 健康做启动级硬依赖；中央侧缺席时只降级对应按钮和查询。
 
-## 生产环境部署
+### 5.2 模式 B：完整三层（推荐）
 
-### 1. 系统优化
+主 `docker-compose.yml` 已纳入 `central-agent`。启动前请在宿主环境或 `.env` 中准备：
 
 ```bash
-# 增加文件描述符限制
-cat >> /etc/security/limits.conf << EOF
-* soft nofile 65535
-* hard nofile 65535
-EOF
-
-# 优化内核参数
-cat >> /etc/sysctl.conf << EOF
-net.core.somaxconn = 65535
-net.ipv4.tcp_max_syn_backlog = 65535
-vm.swappiness = 10
-EOF
-
-sysctl -p
+export EXTERNAL_LLM_BASE_URL="https://your-llm-endpoint.example/v1"
+export EXTERNAL_LLM_API_KEY="your-api-key"
+export EXTERNAL_LLM_MODEL="gpt-4.1-mini"
 ```
 
-### 2. Docker 配置
+启动：
 
 ```bash
-# 创建 Docker 配置目录
-mkdir -p /etc/docker
-
-# 配置 Docker daemon
-cat > /etc/docker/daemon.json << EOF
-{
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m",
-    "max-file": "3"
-  },
-  "storage-driver": "overlay2",
-  "live-restore": true,
-  "default-ulimits": {
-    "nofile": {
-      "Name": "nofile",
-      "Hard": 65535,
-      "Soft": 65535
-    }
-  }
-}
-EOF
-
-# 重启 Docker
-systemctl restart docker
+docker compose up -d
 ```
 
-### 3. 使用生产配置
-
-创建 `docker-compose.prod.yml`:
-
-```yaml
-version: '3.8'
-
-services:
-  llm-service:
-    image: ghcr.io/ggerganov/llama.cpp:server
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-
-  svm-filter-service:
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-
-  agent-loop:
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-
-  edge-test-console:
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-```
-
-启动生产环境：
+## 6. 运行检查
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+curl -s http://localhost:3000/health
+curl -s http://localhost:8002/health
+curl -s http://localhost:8001/health
+curl -s http://localhost:8080/health
+curl -s http://localhost:8003/health
 ```
 
----
+central 可用时，可从 console 触发：
 
-## 离线部署
+- `POST /api/edges/{edge_id}/analyze`（单 Edge）
+- `POST /api/network/analyze`（全网手动综合研判）
 
-适用于无法连接外网的环境。
+## 7. 失败策略
 
-### 1. 在有网络的机器上准备镜像
+1. `edge-agent` 检测失败仅影响该任务，不影响其他 Edge。
+2. `edge-agent -> central-agent` 上报失败，不阻断本地检测闭环完成。
+3. `central-agent` 外部 LLM 不可用时，分析接口返回失败，但已归档报告仍可查询。
+4. 全网综合研判失败，不影响单 Edge 查询与分析。
 
-```bash
-# 拉取所需镜像
-docker pull ghcr.io/ggerganov/llama.cpp:server
-docker pull python:3.10-slim
+## 8. 数据安全与上云红线
 
-# 构建项目镜像
-cd /root/anxun
-docker-compose build
+绝对禁止上云字段：
 
-# 导出所有镜像
-docker save -o tanwei-images.tar \
-  ghcr.io/ggerganov/llama.cpp:server \
-  python:3.10-slim \
-  tanwei_svm-filter-service \
-  tanwei_agent-loop \
-  tanwei_edge-test-console
+- 原始 pcap 二进制
+- 原始 payload
+- 完整十六进制包内容
+- prompt、异常栈、环境变量等敏感调试信息
 
-# 打包项目文件
-tar -czvf tanwei-project.tar.gz \
-  /root/anxun \
-  --exclude='*.venv' \
-  --exclude='*/__pycache__' \
-  --exclude='*/node_modules'
-```
+仅允许上云：
 
-### 2. 传输到离线环境
-
-```bash
-# 使用 U 盘或其他方式传输
-# - tanwei-images.tar
-# - tanwei-project.tar.gz
-```
-
-### 3. 在离线环境部署
-
-```bash
-# 解压项目
-tar -xzvf tanwei-project.tar.gz -C /
-
-# 导入镜像
-docker load -i tanwei-images.tar
-
-# 启动服务
-cd /root/anxun
-docker-compose up -d
-```
-
----
-
-## Kubernetes 部署
-
-### 1. 创建命名空间
-
-```yaml
-# namespace.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: tanwei
-```
-
-### 2. 创建 ConfigMap
-
-```yaml
-# configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tanwei-config
-  namespace: tanwei
-data:
-  SVM_SERVICE_URL: "http://svm-filter-service:8001"
-  LLM_SERVICE_URL: "http://llm-service:8080"
-  MAX_TIME_WINDOW: "60"
-  MAX_PACKET_COUNT: "10"
-  MAX_TOKEN_LENGTH: "690"
-  LOG_LEVEL: "INFO"
-```
-
-### 3. 创建部署文件
-
-```yaml
-# llm-service.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: llm-service
-  namespace: tanwei
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: llm-service
-  template:
-    metadata:
-      labels:
-        app: llm-service
-    spec:
-      containers:
-      - name: llm-service
-        image: ghcr.io/ggerganov/llama.cpp:server
-        args:
-        - --model
-        - /models/Qwen3.5-0.8B-Q4_K_M.gguf
-        - --host
-        - "0.0.0.0"
-        - --port
-        - "8080"
-        - --ctx-size
-        - "2048"
-        - --threads
-        - "2"
-        resources:
-          limits:
-            memory: "1Gi"
-          requests:
-            memory: "512Mi"
-        volumeMounts:
-        - name: model-volume
-          mountPath: /models
-      volumes:
-      - name: model-volume
-        hostPath:
-          path: /root/anxun/qwen3.5-0.8b
-          type: Directory
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: llm-service
-  namespace: tanwei
-spec:
-  selector:
-    app: llm-service
-  ports:
-  - port: 8080
-    targetPort: 8080
-```
-
-### 4. 部署
-
-```bash
-kubectl apply -f namespace.yaml
-kubectl apply -f configmap.yaml
-kubectl apply -f llm-service.yaml
-# ... 其他服务
-```
-
----
-
-## 配置调优
-
-### LLM 服务调优
-
-```yaml
-# docker-compose.yml 中 llm-service 配置
-environment:
-  - CTX_SIZE=4096        # 增加上下文窗口
-  - THREADS=4            # 增加推理线程
-  - N_GPU_LAYERS=0       # GPU 加速（如有）
-```
-
-### Agent 服务调优
-
-```yaml
-# docker-compose.yml 中 agent-loop 配置
-environment:
-  - MAX_TIME_WINDOW=30   # 减少时间窗口
-  - MAX_PACKET_COUNT=5   # 减少包数量
-  - MAX_TOKEN_LENGTH=512 # 减少 Token 长度
-```
-
-### SVM 服务调优
-
-训练新的 SVM 模型：
-
-```bash
-# 进入容器
-docker-compose exec svm-filter-service bash
-
-# 使用真实数据训练
-python models/train_svm.py --data /path/to/training/data
-
-# 模型会保存到 /app/models/saved/
-```
-
----
-
-## 故障排除
-
-### 查看日志
-
-```bash
-# 查看所有服务日志
-docker-compose logs
-
-# 查看特定服务日志
-docker-compose logs -f agent-loop
-
-# 查看最近 100 行
-docker-compose logs --tail=100
-```
-
-### 进入容器调试
-
-```bash
-docker-compose exec agent-loop bash
-```
-
-### 检查资源使用
-
-```bash
-docker stats
-```
-
----
-
-## 版本升级
-
-```bash
-# 1. 备份数据
-docker-compose exec agent-loop tar -czvf /tmp/uploads.tar.gz /app/uploads
-
-# 2. 拉取新代码
-git pull
-
-# 3. 重新构建
-docker-compose build
-
-# 4. 重启服务
-docker-compose up -d
-
-# 5. 验证
-curl http://localhost:3000/health
-```
+- `EdgeIntelligenceReport` 结构化字段（五元组、统计、威胁条目、压缩 token、指标）
+- 必须包含 `schema_version/report_id/edge_id`
