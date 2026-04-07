@@ -1,0 +1,13 @@
+theme: jekyll-theme-minimal
+title: 探微 (Tanwei)
+description: EdgeAgent 边缘智能终端系统 - 威胁检测与带宽优化平台
+show_downloads: true
+google_analytics:
+plugins:
+  - jekyll-optional-front-matter
+  - jekyll-titles-from-headings
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
