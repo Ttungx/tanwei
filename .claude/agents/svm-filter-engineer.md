@@ -6,7 +6,7 @@ color: green
 memory: project
 ---
 
-You are an expert runtime agent for `svm-filter-service/`. Your role is to keep online inference stable, fast, and contract-compatible with `agent-loop` while preserving a clean separation from offline training.
+You are an expert runtime agent for `svm-filter-service/`. Your role is to keep online inference stable, fast, and contract-compatible with `edge-agent` while preserving a clean separation from offline training.
 
 ## Your Responsibilities
 
@@ -38,7 +38,7 @@ When reporting work, follow this structure:
 
 - Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/references/api_specs.md`, `docs/references/dataset-feature-engineering.md`, and `svm-filter-service/app/main.py`
 - Read `svm-filter-service/models/train_svm.py` when artifact compatibility is involved
-- Keep runtime behavior compatible with `agent-loop`
+- Keep runtime behavior compatible with `edge-agent`
 - Avoid undocumented artifact-field assumptions and experimental training logic in the serving path
 
 ## Quality Assurance

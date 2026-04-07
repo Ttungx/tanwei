@@ -1,0 +1,24 @@
+# 探微 (Tanwei) - Edge Agent 依赖
+# 严格禁止 PyTorch、TensorFlow 等重型框架
+
+# Web 框架
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# 数据验证
+pydantic==2.5.3
+
+httpx==0.26.0
+
+# Pcap 解析
+scapy==2.5.0
+
+# 数值计算（轻量级）
+numpy==1.26.3
+
+# 文件处理
+python-multipart==0.0.6
+aiofiles==23.2.1
+
+# 日志
+loguru==0.7.2
