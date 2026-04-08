@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from typing import Any
 
 SERVICE_DIR = Path(__file__).resolve().parents[1]
 if str(SERVICE_DIR) not in sys.path:
@@ -10,6 +11,29 @@ from app.report_mapper import build_edge_report_payload
 
 
 class ReportMapperTests(unittest.TestCase):
+    FORBIDDEN_FIELDS = {
+        "pcap",
+        "payload",
+        "payloadhex",
+        "rawpacket",
+        "rawbytes",
+        "flowtext",
+        "prompt",
+        "stacktrace",
+        "env",
+    }
+
+    def _assert_no_forbidden_fields(self, obj: Any) -> None:
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                normalized = "".join(ch.lower() for ch in key if ch.isalnum())
+                if normalized in self.FORBIDDEN_FIELDS:
+                    self.fail(f"Forbidden field detected: {key}")
+                self._assert_no_forbidden_fields(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                self._assert_no_forbidden_fields(item)
+
     def test_build_edge_report_payload_matches_current_central_contract(self):
         result = {
             "meta": {
@@ -79,5 +103,12 @@ class ReportMapperTests(unittest.TestCase):
             payload["intel"]["threats"][0]["evidence"]["edge_classification"]["primary_label"],
             "Botnet",
         )
-        self.assertNotIn("payload_hex", str(payload).lower())
-        self.assertNotIn("rawpacket", str(payload).lower())
+        self.assertEqual(
+            payload["intel"]["context"]["analysis_constraints"],
+            {
+                "max_time_window_s": 60,
+                "max_packet_count": 10,
+                "max_token_length": 690,
+            },
+        )
+        self._assert_no_forbidden_fields(payload)

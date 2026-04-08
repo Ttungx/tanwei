@@ -20,17 +20,20 @@ def build_edge_report_payload(
     max_token_length: int,
 ) -> dict[str, Any]:
     meta = result.get("meta") or {}
-    statistics = result.get("statistics") or {}
-    metrics = result.get("metrics") or {}
+    statistics = dict(result.get("statistics") or {})
+    metrics = dict(result.get("metrics") or {})
     threats = result.get("threats") or []
     threat_count = int(statistics.get("anomaly_flows_detected", len(threats)) or 0)
 
     mapped_threats = []
     for threat in threats:
-        classification = threat.get("classification") or {}
+        classification = dict(threat.get("classification") or {})
         primary_label = classification.get("primary_label") or "Unknown"
         secondary_label = classification.get("secondary_label")
         confidence = float(classification.get("confidence") or 0.0)
+        five_tuple = dict(threat.get("five_tuple") or {})
+        flow_metadata = dict(threat.get("flow_metadata") or {})
+        token_info = dict(threat.get("token_info") or {})
         mapped_threats.append(
             {
                 "threat_id": threat.get("id"),
@@ -40,10 +43,10 @@ def build_edge_report_payload(
                 "category": secondary_label or primary_label,
                 "summary": secondary_label or "Edge-detected suspicious flow",
                 "evidence": {
-                    "five_tuple": threat.get("five_tuple") or {},
-                    "flow_metadata": threat.get("flow_metadata") or {},
-                    "traffic_tokens": threat.get("token_info") or {},
-                    "edge_classification": classification,
+                    "five_tuple": five_tuple,
+                    "flow_metadata": flow_metadata,
+                    "traffic_tokens": token_info,
+                    "edge_classification": dict(classification),
                 },
             }
         )
