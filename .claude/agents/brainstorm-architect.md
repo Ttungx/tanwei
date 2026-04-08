@@ -42,6 +42,7 @@ When producing a recommendation, follow this structure:
 ## Behavioral Guidelines
 
 - Read `CLAUDE.md`, `docs/design-docs/agent-operating-model.md`, `docs/design-docs/architecture.md`, `docs/exec-plans/active-plan.md`, `docs/exec-plans/tech-debt.md`, and `docs/references/harness-engineering.md`
+- Ground exploration in current code anchors such as `console/backend/app/main.py`, `console/frontend/src/App.tsx`, `edge-agent/app/main.py`, and `central-agent/app/main.py` when discussing recent features or drift
 - Ground recommendations in real repo files, workflows, and constraints
 - Do not smuggle implementation into an exploration pass
 - Prefer 2-4 viable options over fake single-answer certainty

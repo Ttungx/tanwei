@@ -8,7 +8,7 @@ import logging
 import os
 import shutil
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -40,6 +40,10 @@ def create_logger() -> logging.Logger:
     return logger
 
 
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def resolve_demo_samples_dir(current_file: Path) -> Path:
     configured_dir = os.getenv("DEMO_SAMPLES_DIR")
     if configured_dir:
@@ -59,7 +63,7 @@ def resolve_demo_samples_dir(current_file: Path) -> Path:
 logger = create_logger()
 
 EDGE_AGENT_URL = os.getenv("EDGE_AGENT_URL", "http://edge-agent:8002")
-CENTRAL_AGENT_URL = os.getenv("CENTRAL_AGENT_URL", "http://central-agent:8001")
+CENTRAL_AGENT_URL = os.getenv("CENTRAL_AGENT_URL", "http://central-agent:8003")
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/app/uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 DEMO_SAMPLES_DIR = resolve_demo_samples_dir(Path(__file__))
@@ -125,7 +129,7 @@ def initialize_task(task_id: str, filename: str, original_size: int) -> None:
         "message": "任务已创建，等待处理",
         "filename": filename,
         "original_size": original_size,
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": utc_now_iso(),
     }
 
 
@@ -282,7 +286,7 @@ def generate_mock_result(task_id: str, original_size: int) -> Dict[str, Any]:
     return {
         "meta": {
             "task_id": task_id,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": utc_now_iso(),
             "agent_version": "edge-agent-v1",
             "processing_time_ms": 1250,
         },
@@ -311,8 +315,8 @@ def generate_mock_result(task_id: str, original_size: int) -> Dict[str, Any]:
                     "model": "Qwen3.5-0.8B",
                 },
                 "flow_metadata": {
-                    "start_time": datetime.utcnow().isoformat() + "Z",
-                    "end_time": datetime.utcnow().isoformat() + "Z",
+                    "start_time": utc_now_iso(),
+                    "end_time": utc_now_iso(),
                     "packet_count": 10,
                     "byte_count": 5120,
                     "avg_packet_size": 512.0,
@@ -338,8 +342,8 @@ def generate_mock_result(task_id: str, original_size: int) -> Dict[str, Any]:
                     "model": "Qwen3.5-0.8B",
                 },
                 "flow_metadata": {
-                    "start_time": datetime.utcnow().isoformat() + "Z",
-                    "end_time": datetime.utcnow().isoformat() + "Z",
+                    "start_time": utc_now_iso(),
+                    "end_time": utc_now_iso(),
                     "packet_count": 8,
                     "byte_count": 3072,
                     "avg_packet_size": 384.0,

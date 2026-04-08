@@ -14,11 +14,11 @@ type TopbarProps = {
 const SECTION_COPY: Record<AppSection, { title: string; detail: string }> = {
   overview: {
     title: '边缘检测总览',
-    detail: '查看 pcap 检测链路、四容器流转和当前任务状态。',
+    detail: '查看 pcap 检测链路、结构化情报归档和当前任务状态。',
   },
   workspace: {
     title: '检测工作台',
-    detail: '提交流量样本并跟踪流重组、SVM 初筛与 LLM 研判。',
+    detail: '提交 pcap、跟踪流重组/SVM/LLM 阶段，并观察带宽压降结果。',
   },
   archive: {
     title: '威胁归档',
@@ -40,7 +40,7 @@ export function Topbar({
   return (
     <header className={styles.topbar}>
       <div className={styles.topbarCopy}>
-        <span className={styles.topbarEyebrow}>Edge-side Pcap Detection</span>
+        <span className={styles.topbarEyebrow}>Tanwei Console</span>
         <h2 className={styles.topbarTitle}>{sectionCopy.title}</h2>
         <p className={styles.topbarDetail}>{sectionCopy.detail}</p>
       </div>

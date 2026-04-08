@@ -118,7 +118,7 @@ export function buildDemoSampleCards(
 }
 
 const ARCHITECTURE_CARDS: OverviewCard[] = [
-  { label: '四容器闭环', value: 'Console -> Agent Loop -> SVM / LLM' },
+  { label: '四容器闭环', value: 'Console -> Edge Agent -> SVM / LLM' },
   { label: '推理策略', value: 'SVM 初筛 + LLM 精判' },
   { label: '输出形式', value: '威胁档案与压降摘要' },
 ]

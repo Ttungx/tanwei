@@ -34,8 +34,9 @@ When reporting analysis, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/design-docs/traffic-tokenization.md`, `docs/references/dataset-feature-engineering.md`, and `docs/exec-plans/tech-debt.md`
+- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/design-docs/traffic-tokenization.md`, `docs/references/dataset-feature-engineering.md`, `docs/references/harness-engineering.md`, and `docs/exec-plans/tech-debt.md`
 - Ground judgments in observable traffic behavior rather than generic security slogans
+- Respect the repo's evidence boundary: central-side reasoning must be based on structured intelligence, not imaginary raw payload access
 - Be explicit about uncertainty when labels are genuinely ambiguous
 - Recommend the next owner when the follow-up belongs to engineering
 

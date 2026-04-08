@@ -1,4 +1,4 @@
-# 探微 (Tanwei) - EdgeAgent 边缘智能终端系统
+# 探微 (Tanwei) - Console + Edge-Agent + Central-Agent
 
 <div align="center">
 
@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/docker--compose-3.8-blue.svg)
 ![React](https://img.shields.io/badge/react-18.3-61dafb.svg)
 
-**边缘智能体本地闭环验证平台** | **console + edge-agent + central-agent 架构** | **带宽压降 > 70%**
+**端云协同安全分析平台** | **Console-Edge-Central 架构** | **核心网上行带宽压降 > 70%**
 
 [快速开始](#快速开始) | [架构概览](#架构概览) | [API 参考](#api-参考) | [文档](#文档目录)
 
@@ -17,25 +17,26 @@
 
 ## 项目简介
 
-探微 (Tanwei) 是一个用于边缘智能体（EdgeAgent）本地闭环验证的仿真与测试系统。系统采用 `console + edge-agent + central-agent` 协作架构，实现基于离线 Pcap 流量包的威胁检测与带宽压降。
+探微 (Tanwei) 是一个面向 `console + edge-agent + central-agent` 协同架构的仿真与验证系统。第一阶段重点是统一命名、契约和 harness，让边缘检测闭环与中心侧综合分析在同一控制台下协作，并持续守住“核心网上行带宽占用降低 70% 以上”的硬性 KPI。
 
 ### 核心特性
 
-| 特性               | 说明                              |
-| ------------------ | --------------------------------- |
-| **四级漏斗过滤**   | SVM 微秒级初筛 + LLM 深度推理     |
-| **带宽压降 > 70%** | 原始流量转换为 JSON 威胁情报      |
-| **边缘模型**       | Qwen3.5-0.8B INT4 量化，CPU 推理  |
-| **可视化控制台**   | React 18 + FastAPI 实时流水线状态 |
+| 特性 | 说明 |
+| --- | --- |
+| **端云协同** | `console` 同时驱动 `edge-agent` 检测与 `central-agent` 分析 |
+| **边缘闭环** | `edge-agent -> svm-filter-service / llm-service` 五阶段检测链路 |
+| **中心研判** | `central-agent` 支持单 Edge 分析与手动全网综合研判 |
+| **带宽压降 > 70%** | 端云之间仅传结构化情报，不上传原始 pcap/payload |
 
 ### 技术栈
 
-| 容器               | 技术栈                                 | 端口 | 内存  |
-| ------------------ | -------------------------------------- | ---- | ----- |
-| console            | React 18 + TypeScript + Vite + FastAPI | 3000 | 512MB |
-| edge-agent         | FastAPI + scapy + numpy                | 8002 | 500MB |
-| central-agent / svm-filter-service | FastAPI + scikit-learn     | 8001 | 300MB |
-| central-agent / llm-service        | llama.cpp server           | 8080 | 1GB   |
+| 服务 | 技术栈 | 默认端口 | 说明 |
+| --- | --- | --- | --- |
+| `console` | React 18 + TypeScript + Vite + FastAPI | 3000 | 统一控制台与管理员入口 |
+| `edge-agent` | FastAPI + scapy + numpy | 8002 | 边缘侧检测编排与情报生产 |
+| `central-agent` | FastAPI + 外部 LLM API | 8003 | 中心侧归档、单 Edge 分析、全网研判 |
+| `svm-filter-service` | FastAPI + scikit-learn | 8001 | 边缘侧 SVM 在线过滤 |
+| `llm-service` | llama.cpp server | 8080 | 边缘侧本地 LLM 推理 |
 
 ---
 
@@ -79,6 +80,7 @@ docker-compose ps
 # 健康检查
 curl http://localhost:3000/health
 curl http://localhost:8002/health
+curl http://localhost:8003/health
 curl http://localhost:8001/health
 curl http://localhost:8080/health
 ```
@@ -87,29 +89,10 @@ curl http://localhost:8080/health
 
 ## 架构概览
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│            EdgeAgent: console + edge-agent + central-agent       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   ┌───────────────────┐                                         │
-│   │      console      │ ◄── 用户上传 Pcap                        │
-│   │   端口: 3000      │                                         │
-│   └────────┬──────────┘                                         │
-│            │ HTTP API (唯一入口)                                 │
-│            ▼                                                    │
-│   ┌─────────────────┐      ┌─────────────────┐                  │
-│   │   edge-agent    │─────►│  llm-service    │                  │
-│   │   端口: 8002    │      │   端口: 8080     │                  │
-│   └────────┬────────┘      └─────────────────┘                  │
-│            │                                                    │
-│            ▼                                                    │
-│   ┌──────────────────┐                                          │
-│   │svm-filter-service│ ◄── 微秒级二分类                          │
-│   │   端口: 8001      │                                         │
-│   └──────────────────┘                                          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```text
+console -> edge-agent -> svm-filter-service / llm-service
+console -> central-agent
+edge-agent -> central-agent   (仅上报结构化情报，不上传原始证据)
 ```
 
 ### 五阶段检测工作流
@@ -124,13 +107,19 @@ curl http://localhost:8080/health
 
 ### 通信边界约束
 
-```
-console ──► edge-agent ──► central-agent (svm-filter-service)
-                       │
-                       └──► central-agent (llm-service)
+```text
+console ──► edge-agent ──► svm-filter-service
+   │             │
+   │             └──────► llm-service
+   │
+   └──────► central-agent
+
+edge-agent ─────► central-agent
 ```
 
-**单向调用**：`console` 只能调用 `edge-agent`，禁止跨级直接调用中心推理服务。
+- `console` 不能绕过 `edge-agent` 直接调用 `svm-filter-service` / `llm-service`
+- `edge-agent -> central-agent` 只允许结构化情报，不允许原始 pcap/payload/完整十六进制包
+- `central-agent` 不可用时，不得阻断边缘检测闭环完成
 
 ---
 
@@ -156,12 +145,31 @@ Response: { "threats": [...], "metrics": {...} }
 
 ---
 
+## Harness 与 Agent Roster
+
+### 默认执行链
+
+`lead-agent -> specialist -> evaluator-agent -> doc-gardener`
+
+### 本次架构重构的核心 specialist
+
+| Agent | 主要职责 |
+| --- | --- |
+| `edge-agent-engineer` | `edge-agent/` 编排、边缘情报生成、端云上报契约 |
+| `central-agent-engineer` | `central-agent/` 接收归档、单 Edge 分析、全网研判触发 |
+| `console-developer` | `console/` 管理员流、展示与触发交互 |
+| `docker-expert` | 容器编排与部署边界（涉及 central 外部 LLM 依赖时必需） |
+
+完整 roster 与统一范式见 [`.claude/agents/README.md`](.claude/agents/README.md)。
+
+---
+
 ## 文档目录
 
 | 文档                                                                                             | 说明                         |
 | ------------------------------------------------------------------------------------------------ | ---------------------------- |
 | [CLAUDE.md](CLAUDE.md)                                                                           | 项目全局指引与 AI Agent 路由 |
-| [docs/design-docs/architecture.md](docs/design-docs/architecture.md)                             | 四容器拓扑与边界规范         |
+| [docs/design-docs/architecture.md](docs/design-docs/architecture.md)                             | Console-Edge-Central 架构与边界规范 |
 | [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md)                             | 核心信仰与物理约束红线       |
 | [docs/design-docs/traffic-tokenization.md](docs/design-docs/traffic-tokenization.md)             | 流量分词规范                 |
 | [docs/references/api_specs.md](docs/references/api_specs.md)                                     | API 接口规范                 |
@@ -187,9 +195,11 @@ Response: { "threats": [...], "metrics": {...} }
 │   ├── questions/              # 技术选型调研（面向人类）
 │   └── references/             # API 规范与部署指南
 │
-├── central-agent/              # 中心侧聚合目录 (LLM/SVM 推理能力)
-├── edge-agent/                 # 边缘主控与编排
-├── console/                    # 测试控制台
+├── llm-service/                # 边缘侧本地 LLM 推理服务
+├── svm-filter-service/         # 边缘侧 SVM 过滤服务
+├── edge-agent/                 # 边缘智能体编排与情报生产
+├── central-agent/              # 中心智能体归档与分析
+├── console/                    # 统一控制台与管理员入口
 │
 ├── shared/                     # 共享模块 (日志配置等)
 ├── TrafficLLM-master/          # TrafficLLM 依赖 (外部)
@@ -206,7 +216,7 @@ Response: { "threats": [...], "metrics": {...} }
 docker-compose up -d
 
 # 查看日志
-docker-compose logs -f agent-loop
+docker-compose logs -f edge-agent
 
 # 重启服务
 docker-compose restart
@@ -222,13 +232,14 @@ docker-compose up --build -d
 
 ## 项目状态
 
-| 模块               | 状态   | 说明                               |
-| ------------------ | ------ | ---------------------------------- |
-| central-agent / llm-service        | 完成   | llama.cpp server 配置完成          |
-| central-agent / svm-filter-service | 完成   | 32 维特征，TrafficLLM 多数据集训练 |
-| edge-agent                   | 完成   | 五阶段工作流已实现                 |
-| console                      | 完成   | React 18 前端 + FastAPI 后端代理   |
-| 端到端测试         | 进行中 | 需要更多测试 Pcap 文件             |
+| 模块 | 状态 | 说明 |
+| --- | --- | --- |
+| `llm-service` | 完成 | 边缘本地 LLM 推理服务可用 |
+| `svm-filter-service` | 完成 | 32 维特征在线过滤可用 |
+| `edge-agent` | 完成 | 五阶段检测流与边缘闭环可用 |
+| `central-agent` | 进行中 | 中心归档与分析接口正在重构 |
+| `console` | 完成 | 控制台前后端迁移到新命名 |
+| 端到端联调 | 进行中 | 第一阶段不要求真实多 Edge 联调 |
 
 ---
 

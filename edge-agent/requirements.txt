@@ -1,4 +1,4 @@
-# 探微 (Tanwei) - edge-agent 依赖
+# 探微 (Tanwei) - Edge Agent 依赖
 # 严格禁止 PyTorch、TensorFlow 等重型框架
 
 # Web 框架
@@ -8,8 +8,6 @@ uvicorn[standard]==0.27.0
 # 数据验证
 pydantic==2.5.3
 
-# 网络请求
-requests==2.31.0
 httpx==0.26.0
 
 # Pcap 解析
@@ -18,19 +16,9 @@ scapy==2.5.0
 # 数值计算（轻量级）
 numpy==1.26.3
 
-# 分词器（用于跨模态对齐）
-sentencepiece==0.1.99
-
-# 异步任务
-asyncio-pool==0.6.0
-
 # 文件处理
 python-multipart==0.0.6
 aiofiles==23.2.1
 
 # 日志
 loguru==0.7.2
-
-# 工具
-python-dateutil==2.8.2
-uuid6==2023.5.2

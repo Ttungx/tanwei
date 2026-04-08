@@ -1,5 +1,5 @@
-# 探微 (Tanwei) - edge-agent 容器
-# edge-agent 核心大脑：五阶段工作流执行
+# 探微 (Tanwei) - Edge Agent 容器
+# EdgeAgent 核心大脑：五阶段工作流执行
 # 技术栈：Python 3.10-slim + scapy + FastAPI
 
 FROM python:3.10-slim

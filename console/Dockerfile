@@ -6,13 +6,13 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 # Copy frontend package files
-COPY edge-test-console/frontend/package.json ./
+COPY console/frontend/package.json ./
 
 # Install dependencies
 RUN npm install --legacy-peer-deps
 
 # Copy frontend source
-COPY edge-test-console/frontend/ ./
+COPY console/frontend/ ./
 
 # Build frontend (ignore TypeScript errors for now, focus on Vite build)
 RUN npm run build || npx vite build
@@ -30,11 +30,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install backend dependencies
-COPY edge-test-console/backend/requirements.txt ./
+COPY console/backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend application
-COPY edge-test-console/backend/app/ ./app/
+COPY console/backend/app/ ./app/
 
 # Copy demo sample directory for built-in showcase flows
 COPY data/test_traffic/demo_show/ ./demo-samples/
@@ -48,7 +48,7 @@ RUN mkdir -p /app/uploads
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV AGENT_LOOP_URL=http://agent-loop:8002
+ENV EDGE_AGENT_URL=http://edge-agent:8002
 ENV DEMO_SAMPLES_DIR=/app/demo-samples
 
 # Expose port

@@ -119,7 +119,7 @@ describe('buildOverviewViewModel', () => {
     })
     expect(viewModel.architectureCards[0]).toEqual({
       label: '四容器闭环',
-      value: 'Console -> Agent Loop -> SVM / LLM',
+      value: 'Console -> Edge Agent -> SVM / LLM',
     })
     expect(viewModel.systemCards[0].value).toBe('前端控制台')
   })

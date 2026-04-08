@@ -36,8 +36,8 @@ When reporting work, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/core-beliefs.md`, `docs/exec-plans/active-plan.md`, `docs/references/dataset-feature-engineering.md`, and `svm-filter-service/models/train_svm.py`
-- Read `svm-filter-service/app/main.py` when artifact compatibility is relevant
+- Read `CLAUDE.md`, `docs/design-docs/core-beliefs.md`, `docs/exec-plans/active-plan.md`, `docs/references/dataset-feature-engineering.md`, `docs/references/harness-engineering.md`, and `svm-filter-service/models/train_svm.py`
+- Read `svm-filter-service/app/main.py`, `svm-filter-service/models/saved/metadata.json`, and the relevant `data/` inputs when artifact compatibility is relevant
 - Optimize for edge deployment, not vanity metrics
 - Keep features explainable and promotion logic evidence-based
 

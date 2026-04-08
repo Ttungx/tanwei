@@ -3,11 +3,12 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
+COPY console/backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app/ ./app/
+COPY console/backend/app/ ./app/
+COPY console/backend/tests/ ./tests/
 
 # Create directory for uploaded files
 RUN mkdir -p /app/uploads
