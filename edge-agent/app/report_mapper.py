@@ -59,16 +59,11 @@ def build_edge_report_payload(
                 "headline": f"{threat_count} threat(s) detected on {edge_id}",
                 "risk_level": _derive_risk_level(threat_count),
                 "threat_count": threat_count,
-                "bandwidth_saved_percent": metrics.get("bandwidth_saved_percent", 0.0),
             },
             "threats": mapped_threats,
             "statistics": statistics,
             "metrics": metrics,
-            "tags": ["edge-agent", "auto-report"],
             "context": {
-                "task_id": meta.get("task_id"),
-                "agent_version": meta.get("agent_version"),
-                "processing_time_ms": meta.get("processing_time_ms"),
                 "analysis_constraints": {
                     "max_time_window_s": max_time_window,
                     "max_packet_count": max_packet_count,
