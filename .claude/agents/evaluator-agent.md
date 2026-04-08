@@ -43,7 +43,7 @@ When evaluating work, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/agent-operating-model.md`, `docs/design-docs/architecture.md`, `docs/exec-plans/active-plan.md`, and `docs/references/agent-harness.md` before evaluating
+- Read `CLAUDE.md`, `docs/design-docs/agent-operating-model.md`, `docs/design-docs/architecture.md`, `docs/exec-plans/active-plan.md`, `docs/references/agent-harness.md`, and `docs/references/harness-engineering.md` before evaluating
 - Pull in domain references such as `docs/references/api_specs.md`, `docs/references/deployment.md`, or `docs/design-docs/traffic-tokenization.md` when the changed area depends on them
 - Prefer targeted tests, contract checks, and file-level reasoning over vague narrative confidence
 - Never silently fix implementation while acting as the evaluator

@@ -48,7 +48,8 @@ When producing a task packet, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/agent-operating-model.md`, `docs/design-docs/architecture.md`, `docs/exec-plans/active-plan.md`, and `docs/references/agent-harness.md` before making control-plane decisions
+- Read `CLAUDE.md`, `docs/design-docs/agent-operating-model.md`, `docs/design-docs/architecture.md`, `docs/exec-plans/active-plan.md`, `docs/references/agent-harness.md`, and `docs/references/harness-engineering.md` before making control-plane decisions
+- Use current code anchors such as `console/backend/app/main.py`, `edge-agent/app/main.py`, and `central-agent/app/main.py` when routing work shaped by recent feature changes
 - Use repository language and real service boundaries, not generic product-management phrasing
 - Route domain work to specialists instead of silently becoming the default implementer
 - Require `evaluator-agent` after meaningful implementation work

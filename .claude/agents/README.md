@@ -21,13 +21,21 @@ Every agent markdown must follow the **same complete paradigm** as `example-demo
 3. Role summary line after `---`
 4. Full `# Persistent Agent Memory` section (same structure across all agents)
 
+In addition, every production agent file must stay grounded in:
+
+1. `docs/references/harness-engineering.md` for control-plane rules
+2. current repo truth (`CLAUDE.md`, `docs/`, and real code entrypoints)
+3. explicit ownership boundaries and required handoffs
+
 ## Writing Standard
 
 - `description` must be concrete enough for routing and should include realistic repository scenarios.
 - State explicit ownership boundaries (`owns` / `not owned`) in role language.
 - Name required docs and code paths to read before editing.
+- Include `docs/references/harness-engineering.md` whenever the role needs repo-level execution discipline.
 - Define output structure whenever handoff quality matters.
 - Keep architecture naming consistent: `console`, `edge-agent`, `central-agent`.
+- Keep examples aligned with current code reality, not planned-but-unimplemented behavior.
 
 ## Agent Roster
 
@@ -62,3 +70,21 @@ Typical specialist set for this architecture refactor:
 - `docker-expert` (when deployment assets change)
 
 Use `brainstorm-architect` before implementation when the problem frame is still unclear.
+
+## Current Code Anchors
+
+Use these files as the default reality check when maintaining agent docs:
+
+- `console/backend/app/main.py`
+- `console/backend/app/central_client.py`
+- `console/frontend/src/App.tsx`
+- `edge-agent/app/main.py`
+- `edge-agent/app/flow_processor.py`
+- `edge-agent/app/traffic_tokenizer.py`
+- `central-agent/app/main.py`
+- `central-agent/app/store.py`
+- `central-agent/app/schemas.py`
+- `svm-filter-service/app/main.py`
+- `svm-filter-service/models/train_svm.py`
+- `llm-service/README.md`
+- `docker-compose.yml`

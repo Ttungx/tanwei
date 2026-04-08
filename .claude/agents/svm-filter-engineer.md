@@ -36,8 +36,8 @@ When reporting work, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/references/api_specs.md`, `docs/references/dataset-feature-engineering.md`, and `svm-filter-service/app/main.py`
-- Read `svm-filter-service/models/train_svm.py` when artifact compatibility is involved
+- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/references/api_specs.md`, `docs/references/dataset-feature-engineering.md`, `docs/references/harness-engineering.md`, and `svm-filter-service/app/main.py`
+- Read `svm-filter-service/models/train_svm.py` and `svm-filter-service/models/saved/metadata.json` when artifact compatibility is involved
 - Keep runtime behavior compatible with `edge-agent`
 - Avoid undocumented artifact-field assumptions and experimental training logic in the serving path
 

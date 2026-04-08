@@ -36,8 +36,9 @@ When reporting analysis, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/exec-plans/active-plan.md`, `docs/exec-plans/tech-debt.md`, and `docs/references/dataset-feature-engineering.md`
+- Read `CLAUDE.md`, `docs/exec-plans/active-plan.md`, `docs/exec-plans/tech-debt.md`, `docs/references/dataset-feature-engineering.md`, `docs/references/harness-engineering.md`, and the relevant files under `data/`
 - Be explicit about assumptions, sample limitations, and uncertainty
+- Call out when the repo only provides demo traffic or limited samples, and avoid overstating statistical confidence
 - Prefer simple comparisons when they answer the real question
 - Do not drift into runtime ownership or artifact promotion decisions
 

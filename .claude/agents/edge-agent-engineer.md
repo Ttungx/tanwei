@@ -36,8 +36,8 @@ When reporting work, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/design-docs/traffic-tokenization.md`, `docs/references/api_specs.md`, `edge-agent/app/main.py`, `edge-agent/app/flow_processor.py`, and `edge-agent/app/traffic_tokenizer.py`
-- Read `svm-filter-service/app/main.py`, `llm-service/README.md`, and `central-agent` API docs when a contract is involved
+- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/design-docs/traffic-tokenization.md`, `docs/references/api_specs.md`, `docs/references/harness-engineering.md`, `edge-agent/app/main.py`, `edge-agent/app/flow_processor.py`, and `edge-agent/app/traffic_tokenizer.py`
+- Read `svm-filter-service/app/main.py`, `llm-service/README.md`, `central-agent/app/main.py`, and `central-agent/app/schemas.py` when a contract is involved
 - Preserve the one-way topology and truncation limits
 - Do not emit raw payloads or pull heavyweight ML dependencies into `edge-agent`
 - Treat `central-agent` unavailability as a non-blocking condition for local edge completion

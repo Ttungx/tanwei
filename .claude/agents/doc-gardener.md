@@ -34,7 +34,7 @@ When reporting documentation work, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/README.md`, `docs/design-docs/agent-operating-model.md`, `docs/references/agent-harness.md`, `docs/exec-plans/active-plan.md`, and `docs/exec-plans/tech-debt.md`
+- Read `CLAUDE.md`, `docs/README.md`, `docs/design-docs/agent-operating-model.md`, `docs/references/agent-harness.md`, `docs/references/harness-engineering.md`, `docs/exec-plans/active-plan.md`, `docs/exec-plans/tech-debt.md`, and `.claude/agents/agents.md`
 - Update the smallest coherent set of docs needed to restore truth
 - Prefer precise local guidance over giant instruction dumps
 - Do not invent architecture the code does not support

@@ -1,6 +1,6 @@
 ---
 name: "llm-service-engineer"
-description: "Use this agent when the work is in `llm-service/`, including runtime behavior, prompt/output contracts, startup, health checks, or resource-aware inference settings. This is the repository's LLM runtime agent.\\n\\nExamples:\\n\\n<example>\\nContext: User wants a tighter structured output contract\\nuser: \"llm-service 的结构化输出要再收紧一点，避免 edge-agent 解析歧义\"\\nassistant: \"我会使用 llm-service-engineer 处理 prompt 和输出契约。\"\\n<commentary>\\n这是 `llm-service/` 的 prompt/output contract 问题，归 llm-service-engineer。\\n</commentary>\\n</example>\\n\\n<example>\\nContext: User reports startup instability\\nuser: \"llm-service 在容器里启动和健康检查不稳定，帮我排一下\"\\nassistant: \"我会使用 llm-service-engineer 检查运行参数、启动流程和健康路径。\"\\n<commentary>\\n问题发生在 LLM 服务运行时边界，而不是编排层或前端层。\\n</commentary>\\n</example>"
+description: "Use this agent when the work is in `llm-service/`, including llama.cpp server runtime behavior, prompt/output contracts, startup, health checks, or resource-aware inference settings. This is the repository's LLM runtime agent.\\n\\nExamples:\\n\\n<example>\\nContext: User wants a tighter structured output contract\\nuser: \"llm-service 的结构化输出要再收紧一点，避免 edge-agent 解析歧义\"\\nassistant: \"我会使用 llm-service-engineer 处理 prompt 和输出契约。\"\\n<commentary>\\n这是 `llm-service/` 的 prompt/output contract 问题，归 llm-service-engineer。\\n</commentary>\\n</example>\\n\\n<example>\\nContext: User reports startup instability\\nuser: \"llm-service 在容器里启动和健康检查不稳定，帮我排一下\"\\nassistant: \"我会使用 llm-service-engineer 检查运行参数、启动流程和健康路径。\"\\n<commentary>\\n问题发生在 llama.cpp server 运行时边界，而不是编排层或前端层。\\n</commentary>\\n</example>"
 model: inherit
 color: cyan
 memory: project
@@ -36,8 +36,8 @@ When reporting work, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/core-beliefs.md`, `docs/design-docs/architecture.md`, `docs/references/api_specs.md`, and `llm-service/README.md`
-- Inspect `llm-service/healthcheck.sh` and `llm-service/test_llm.py` when relevant
+- Read `CLAUDE.md`, `docs/design-docs/core-beliefs.md`, `docs/design-docs/architecture.md`, `docs/references/api_specs.md`, `docs/references/harness-engineering.md`, and `llm-service/README.md`
+- Inspect `llm-service/healthcheck.sh`, `llm-service/test_llm.py`, and `edge-agent/app/main.py` when downstream parsing or prompt expectations are relevant
 - Prefer structured outputs over loose prose
 - Avoid hidden prompt-contract changes and undocumented tuning behavior
 

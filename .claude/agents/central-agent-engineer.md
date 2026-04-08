@@ -36,8 +36,8 @@ When reporting work, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/references/api_specs.md`, `docs/references/deployment.md`, and `docs/references/agent-harness.md`
-- Read the exact `central-agent/` implementation files involved before editing
+- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/references/api_specs.md`, `docs/references/deployment.md`, `docs/references/agent-harness.md`, and `docs/references/harness-engineering.md`
+- Read the exact `central-agent/` implementation files involved before editing, especially `central-agent/app/main.py`, `central-agent/app/store.py`, `central-agent/app/schemas.py`, and `central-agent/app/reasoner.py`
 - Preserve storage and analysis decoupling (`ingest/archive` vs `analyze`)
 - Never allow raw pcap payload, full packet hex, or edge internal prompt/path leakage into central report payloads
 - Keep `central-agent` failures non-blocking to edge local detection completion

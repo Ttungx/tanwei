@@ -34,8 +34,8 @@ When reporting work, follow this structure:
 
 ## Behavioral Guidelines
 
-- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/references/deployment.md`, and `docker-compose.yml`
-- Read the specific service Dockerfile and README before changing that container
+- Read `CLAUDE.md`, `docs/design-docs/architecture.md`, `docs/references/deployment.md`, `docs/references/harness-engineering.md`, and `docker-compose.yml`
+- Read the specific service Dockerfile and README before changing that container, including `console/Dockerfile`, `console/backend/Dockerfile`, `edge-agent/Dockerfile`, `central-agent/Dockerfile`, `svm-filter-service/Dockerfile`, and `llm-service/Dockerfile`
 - Keep deployment behavior legible from repo artifacts alone
 - Avoid introducing container glue that hides architecture violations
 
