@@ -30,7 +30,14 @@ def build_edge_report_payload(
         classification = dict(threat.get("classification") or {})
         primary_label = classification.get("primary_label") or "Unknown"
         secondary_label = classification.get("secondary_label")
-        confidence = float(classification.get("confidence") or 0.0)
+        raw_confidence = classification.get("confidence")
+        normalized_confidence = None
+        if raw_confidence not in (None, ""):
+            try:
+                normalized_confidence = float(raw_confidence)
+            except (TypeError, ValueError):
+                normalized_confidence = None
+        confidence = normalized_confidence or 0.0
         five_tuple = dict(threat.get("five_tuple") or {})
         flow_metadata = dict(threat.get("flow_metadata") or {})
         token_info = dict(threat.get("token_info") or {})
@@ -39,7 +46,7 @@ def build_edge_report_payload(
                 "threat_id": threat.get("id"),
                 "title": primary_label,
                 "severity": "high" if confidence >= 0.9 else "medium" if confidence >= 0.7 else "low",
-                "confidence": classification.get("confidence"),
+                "confidence": normalized_confidence,
                 "category": secondary_label or primary_label,
                 "summary": secondary_label or "Edge-detected suspicious flow",
                 "evidence": {

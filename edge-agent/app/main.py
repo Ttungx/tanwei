@@ -28,7 +28,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from loguru import logger
 
+from central_reporter import CentralReporter
 from flow_processor import FlowProcessor, Flow
+from report_mapper import build_edge_report_payload
 from traffic_tokenizer import TrafficTokenizer
 
 
@@ -91,6 +93,9 @@ MAX_TIME_WINDOW = int(os.environ.get("MAX_TIME_WINDOW", "60"))
 MAX_PACKET_COUNT = int(os.environ.get("MAX_PACKET_COUNT", "10"))
 MAX_TOKEN_LENGTH = int(os.environ.get("MAX_TOKEN_LENGTH", "690"))
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/app/uploads")
+CENTRAL_AGENT_URL = os.environ.get("CENTRAL_AGENT_URL", "").strip()
+CENTRAL_AGENT_TIMEOUT_SECONDS = float(os.environ.get("CENTRAL_AGENT_TIMEOUT_SECONDS", "5"))
+EDGE_ID = os.environ.get("EDGE_ID", "edge1").strip() or "edge1"
 
 # 版本信息
 AGENT_VERSION = "1.0.0"
@@ -157,6 +162,10 @@ tasks: Dict[str, Task] = {}
 
 # 启动时间
 START_TIME = time.time()
+central_reporter = CentralReporter(
+    base_url=CENTRAL_AGENT_URL,
+    timeout_seconds=CENTRAL_AGENT_TIMEOUT_SECONDS,
+)
 
 
 # ============================================================
@@ -278,6 +287,62 @@ async def call_llm_service(prompt: str, max_tokens: int = 64) -> dict:
 # 检测工作流
 # ============================================================
 
+def refresh_result_metrics(result: dict[str, Any], original_size_bytes: int) -> None:
+    metrics = result.setdefault("metrics", {})
+    statistics = result.setdefault("statistics", {})
+    json_output_bytes = metrics.get("json_output_size_bytes", 0)
+
+    while True:
+        if original_size_bytes > 0:
+            bandwidth_reduction = ((original_size_bytes - json_output_bytes) / original_size_bytes) * 100
+        else:
+            bandwidth_reduction = 0.0
+
+        rounded_reduction = max(0.0, round(bandwidth_reduction, 2))
+        metrics["json_output_size_bytes"] = json_output_bytes
+        metrics["bandwidth_saved_percent"] = rounded_reduction
+        statistics["bandwidth_reduction"] = f"{rounded_reduction}%"
+
+        exact_size = len(json.dumps(result).encode("utf-8"))
+        if exact_size == json_output_bytes:
+            break
+        json_output_bytes = exact_size
+
+    if original_size_bytes > 0:
+        bandwidth_reduction = ((original_size_bytes - json_output_bytes) / original_size_bytes) * 100
+    else:
+        bandwidth_reduction = 0.0
+    rounded_reduction = max(0.0, round(bandwidth_reduction, 2))
+    metrics["json_output_size_bytes"] = json_output_bytes
+    metrics["bandwidth_saved_percent"] = rounded_reduction
+    statistics["bandwidth_reduction"] = f"{rounded_reduction}%"
+
+
+async def attach_central_reporting(task: Task) -> dict[str, Any]:
+    if not task.result:
+        return {"status": "skipped", "message": "task.result is empty"}
+
+    try:
+        payload = build_edge_report_payload(
+            task.result,
+            edge_id=EDGE_ID,
+            max_time_window=MAX_TIME_WINDOW,
+            max_packet_count=MAX_PACKET_COUNT,
+            max_token_length=MAX_TOKEN_LENGTH,
+        )
+        status = await central_reporter.report(payload)
+    except Exception as exc:
+        status = {
+            "status": "failed",
+            "error_code": "CENTRAL_REPORT_UPLOAD_FAILED",
+            "message": str(exc),
+        }
+
+    task.result.setdefault("meta", {})["central_reporting"] = status
+    refresh_result_metrics(task.result, task.pcap_size)
+    return status
+
+
 async def run_detection_pipeline(task_id: str):
     """
     执行五阶段检测工作流
@@ -342,6 +407,7 @@ async def run_detection_pipeline(task_id: str):
                 }
             }
             task.updated_at = time.time()
+            await attach_central_reporting(task)
             return
 
         # ============================================================
@@ -480,21 +546,10 @@ async def run_detection_pipeline(task_id: str):
         }
 
         # 构建完 JSON 结果后，重新序列化并依据真实物理字节差计算压降率
-        json_output_bytes = len(json.dumps(result).encode('utf-8'))
-        original_size_bytes = task.pcap_size
-        
-        if original_size_bytes > 0:
-            # 公式: (原始字节 - 生成日志字节) / 原始字节 * 100%
-            bandwidth_reduction = ((original_size_bytes - json_output_bytes) / original_size_bytes) * 100
-        else:
-            bandwidth_reduction = 0.0
-
-        # 正确更新 KPI 看板所需的真实物理指标
-        result["metrics"]["json_output_size_bytes"] = json_output_bytes
-        result["metrics"]["bandwidth_saved_percent"] = max(0.0, round(bandwidth_reduction, 2))
-        result["statistics"]["bandwidth_reduction"] = f"{max(0.0, round(bandwidth_reduction, 2))}%"
+        refresh_result_metrics(result, task.pcap_size)
 
         task.result = result
+        await attach_central_reporting(task)
 
         logger.info(f"[Task {task_id}] Detection complete: {len(threats)} threats found")
 

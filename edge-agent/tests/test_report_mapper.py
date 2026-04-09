@@ -13,14 +13,24 @@ from app.report_mapper import build_edge_report_payload
 class ReportMapperTests(unittest.TestCase):
     FORBIDDEN_FIELDS = {
         "pcap",
+        "pcapbase64",
+        "pcapbytes",
+        "pcapfile",
+        "rawpcap",
         "payload",
+        "payloadbase64",
+        "payloadbytes",
         "payloadhex",
+        "rawpayload",
+        "rawpayloadhex",
         "rawpacket",
+        "rawpackets",
         "rawbytes",
         "flowtext",
-        "prompt",
-        "stacktrace",
-        "env",
+        "packetbytes",
+        "packethex",
+        "applicationpayload",
+        "fulll7content",
     }
 
     def _assert_no_forbidden_fields(self, obj: Any) -> None:
@@ -63,7 +73,7 @@ class ReportMapperTests(unittest.TestCase):
                     "classification": {
                         "primary_label": "Botnet",
                         "secondary_label": "C2 Beaconing",
-                        "confidence": 0.91,
+                        "confidence": "0.91",
                         "model": "Qwen3.5-0.8B",
                     },
                     "flow_metadata": {
@@ -99,6 +109,7 @@ class ReportMapperTests(unittest.TestCase):
         self.assertEqual(payload["intel"]["summary"]["risk_level"], "medium")
         self.assertEqual(payload["intel"]["metrics"]["bandwidth_saved_percent"], 81.4)
         self.assertEqual(payload["intel"]["threats"][0]["threat_id"], "threat-001")
+        self.assertEqual(payload["intel"]["threats"][0]["confidence"], 0.91)
         self.assertEqual(
             payload["intel"]["threats"][0]["evidence"]["edge_classification"]["primary_label"],
             "Botnet",

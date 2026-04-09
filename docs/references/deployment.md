@@ -43,11 +43,11 @@ edge-agent -> central-agent (结构化情报上报)
 
 | 服务 | 容器端口 | 暴露策略 |
 |------|------|------|
-| `console` | 8000 | 映射宿主 `3000`（唯一外部入口） |
-| `edge-agent` | 8002 | 内网访问 |
-| `central-agent` | 8003 | 内网访问 |
-| `svm-filter-service` | 8001 | 内网访问 |
-| `llm-service` | 8080 | 内网访问 |
+| `console` | 8000 | 映射宿主 `3000`（管理员首选入口） |
+| `edge-agent` | 8002 | 开发/联调用途映射宿主 `8002` |
+| `central-agent` | 8003 | 开发/联调用途映射宿主 `8003` |
+| `svm-filter-service` | 8001 | 开发诊断用途映射宿主 `8001` |
+| `llm-service` | 8080 | 开发诊断用途映射宿主 `8080` |
 
 ## 4. 环境变量
 
@@ -66,6 +66,9 @@ edge-agent -> central-agent (结构化情报上报)
 |------|------|------|
 | `SVM_SERVICE_URL` | `http://svm-filter-service:8001` | SVM 初筛服务 |
 | `LLM_SERVICE_URL` | `http://llm-service:8080` | 本地 LLM 推理服务 |
+| `CENTRAL_AGENT_URL` | `http://central-agent:8003` | 上报 central-agent（空则跳过自动上报） |
+| `CENTRAL_AGENT_TIMEOUT_SECONDS` | `5` | 上报超时（秒） |
+| `EDGE_ID` | `edge1` | 边缘节点 ID |
 | `MAX_TIME_WINDOW` | `60` | 时间窗截断 |
 | `MAX_PACKET_COUNT` | `10` | 包数截断 |
 | `MAX_TOKEN_LENGTH` | `690` | token 长度上限 |
@@ -141,7 +144,9 @@ central 可用时，可从 console 触发：
 - 原始 pcap 二进制
 - 原始 payload
 - 完整十六进制包内容
-- prompt、异常栈、环境变量等敏感调试信息
+- 其他 pcap/payload-like 衍生字段（如 `packet hex`、`application payload`）
+
+补充说明：`prompt`、异常栈、环境变量等敏感调试信息同样不应进入上云契约，但当前 `central-agent` 的强制校验重点仍是 pcap/payload-like 字段。
 
 仅允许上云：
 

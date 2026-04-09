@@ -15,7 +15,7 @@ type: project
 ## 阶段目标
 
 1. 命名与认知统一：`console / edge-agent / central-agent`。
-2. 端云契约固化：`EdgeIntelligenceReport` 成为唯一上云对象。
+2. 端云契约固化：`EdgeReportIn`（顶层字段 + 嵌套 `intel`）成为唯一上云对象。
 3. 运行边界明确：单 Edge 可独立分析，全网综合研判仅手动触发。
 4. 文档体系收口：architecture/api/deployment/harness 同步。
 
@@ -29,17 +29,27 @@ type: project
   - 已提供 `reports/edges/analyze` 基础 API
   - 已接入外部 LLM 推理组件（`EXTERNAL_LLM_*`）
 
-- [ ] **WP-3 edge-agent -> central-agent 上报打通**
-  - 将边缘终态结果映射为 `EdgeIntelligenceReport`
-  - 增加上报失败不阻断边缘完成的策略
+- [x] **WP-3 edge-agent -> central-agent 上报打通**
+  - central-agent 服务已落地：reports 接收归档、单 Edge 分析、全网分析 API
+  - `EdgeReportIn`（顶层字段 + 嵌套 `intel`）契约已定义于 `central-agent/app/models.py`
+  - SQLite 持久化存储已实现
+  - 外部 LLM 集成已完成
+  - edge-agent 检测完成后自动上报当前 `EdgeReportIn` 契约
+  - 上报状态写入 `task.result.meta.central_reporting`
+  - central-agent 不可用仅告警，不阻断边缘检测闭环完成
 
-- [ ] **WP-4 console 中心分析运营流**
-  - 单 Edge 查询/分析流程完善
-  - 全网手动综合研判交互完善
+- [x] **WP-4 console 中心分析运营流**
+  - console 后端 `central_client.py` 已实现 central-agent 代理层
+  - Edge 列表查询 `/api/edges` 已实现
+  - 单 Edge 最新报告 `/api/edges/{edge_id}/reports/latest` 已实现
+  - 单 Edge 分析触发 `/api/edges/{edge_id}/analyze` 已实现
+  - 全网综合研判 `/api/network/analyze` 已实现
+  - 前端组件已模块化重构
 
 - [ ] **WP-5 文档与 harness 收口**
   - 设计、接口、部署、agent 路由一致化
   - 清除旧名称与旧拓扑残留
+  - 补充端云契约自动化 schema 检查
 
 ---
 

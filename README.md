@@ -119,7 +119,8 @@ edge-agent ─────► central-agent
 
 - `console` 不能绕过 `edge-agent` 直接调用 `svm-filter-service` / `llm-service`
 - `edge-agent -> central-agent` 只允许结构化情报，不允许原始 pcap/payload/完整十六进制包
-- `central-agent` 不可用时，不得阻断边缘检测闭环完成
+- `edge-agent` 检测完成后自动上传结构化情报到 `central-agent`
+- 上报失败不阻断边缘检测闭环完成，状态写入 `meta.central_reporting`
 
 ---
 

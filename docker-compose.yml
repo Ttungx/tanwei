@@ -77,7 +77,7 @@ services:
   # 容器 3：边缘智能体主控程序 (edge-agent)
   # 工程定位：edge-agent 核心大脑，五阶段工作流执行
   # 技术栈：Python 3.10-slim + scapy + FastAPI
-  # 第一阶段约束：不要求 edge-agent 实现自动上报 central-agent
+  # 当前现实：edge-agent 默认自动上报 central-agent，失败仅告警不阻断本地完成
   # ============================================================
   edge-agent:
     build:
@@ -96,6 +96,9 @@ services:
       - MAX_PACKET_COUNT=10
       - MAX_TOKEN_LENGTH=690
       - LOG_LEVEL=INFO
+      - CENTRAL_AGENT_URL=http://central-agent:8003
+      - CENTRAL_AGENT_TIMEOUT_SECONDS=5
+      - EDGE_ID=edge1
     depends_on:
       llm-service:
         condition: service_healthy

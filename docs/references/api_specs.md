@@ -95,7 +95,11 @@ edge-agent -> central-agent
     "task_id": "uuid-string",
     "timestamp": "2026-04-08T10:00:00Z",
     "agent_version": "edge-agent-v1",
-    "processing_time_ms": 1250
+    "processing_time_ms": 1250,
+    "central_reporting": {
+      "status": "stored",
+      "report_id": "uuid-string"
+    }
   },
   "statistics": {
     "total_packets": 1500,
@@ -250,35 +254,50 @@ edge-agent -> central-agent
 
 #### POST `/api/v1/reports`
 
-请求体为当前实现的 `EdgeReportIn`：
+请求体为当前实现的 `EdgeReportIn`。当前线上契约为顶层 `edge_id / report_id / source / reported_at` + 嵌套 `intel`，旧的平铺字段描述已归档不再使用：
 
 ```json
 {
   "edge_id": "edge1",
-  "report_id": "rep-20260408-0001",
+  "report_id": "task-20260409-0001",
   "source": "edge-agent",
-  "reported_at": "2026-04-08T10:00:00Z",
+  "reported_at": "2026-04-09T10:12:30Z",
   "intel": {
     "schema_version": "edge-intel/v1",
     "summary": {
-      "headline": "Suspicious outbound activity detected",
-      "risk_level": "high"
+      "headline": "2 threat(s) detected on edge1",
+      "risk_level": "medium",
+      "threat_count": 2
     },
     "threats": [
       {
         "threat_id": "threat-001",
-        "title": "Possible C2 beaconing",
-        "severity": "high",
-        "confidence": 0.92,
+        "title": "Suspicious DNS beacon",
+        "severity": "medium",
+        "confidence": 0.78,
         "category": "command-and-control",
-        "summary": "Repeated outbound callbacks observed.",
+        "summary": "Edge-detected suspicious flow",
         "evidence": {
           "five_tuple": {
             "src_ip": "192.168.1.10",
             "src_port": 49231,
             "dst_ip": "203.0.113.8",
-            "dst_port": 443,
-            "protocol": "TCP"
+            "dst_port": 53,
+            "protocol": "UDP"
+          },
+          "flow_metadata": {
+            "packet_count": 18,
+            "byte_count": 2048,
+            "duration_ms": 3200
+          },
+          "traffic_tokens": {
+            "token_count": 420,
+            "truncated": true
+          },
+          "edge_classification": {
+            "primary_label": "Suspicious DNS beacon",
+            "secondary_label": "command-and-control",
+            "confidence": 0.78
           }
         }
       }
@@ -288,13 +307,14 @@ edge-agent -> central-agent
       "anomaly_flows_detected": 2
     },
     "metrics": {
-      "processing_time_ms": 1250,
-      "bandwidth_saved_percent": 78.5
+      "bandwidth_saved_percent": 81.4
     },
-    "tags": ["site-a", "edge1"],
     "context": {
-      "site_name": "branch-a",
-      "model_version": "qwen3.5-0.8b"
+      "analysis_constraints": {
+        "max_time_window_s": 60,
+        "max_packet_count": 10,
+        "max_token_length": 690
+      }
     }
   }
 }
@@ -305,10 +325,10 @@ edge-agent -> central-agent
 ```json
 {
   "status": "stored",
-  "report_id": "rep-20260408-0001",
+  "report_id": "task-20260409-0001",
   "edge_id": "edge1",
-  "reported_at": "2026-04-08T10:00:00+00:00",
-  "received_at": "2026-04-08T10:00:01+00:00"
+  "reported_at": "2026-04-09T10:12:30+00:00",
+  "received_at": "2026-04-09T10:12:31+00:00"
 }
 ```
 
@@ -324,17 +344,18 @@ edge-agent -> central-agent
 
 ### 4.3 禁止字段
 
-任意层级均禁止出现以下字段或等价变体：
+任意层级均禁止出现以下字段或等价变体（与 `central-agent/app/security.py` 的校验保持一致）：
 
-- 原始 `pcap`
-- 原始 `payload`
+- `pcap`
+- `payload`
 - `payload_hex`
 - `raw_packet`
 - `raw_bytes`
 - `flow_text`
-- `prompt`
-- `stack_trace`
-- `env`
+- `packet_bytes`
+- `packet_hex`
+- `application_payload`
+- `full_l7_content`
 
 ## 5. central-agent API
 
