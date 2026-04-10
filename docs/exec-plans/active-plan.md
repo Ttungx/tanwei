@@ -42,14 +42,16 @@ type: project
   - console 后端 `central_client.py` 已实现 central-agent 代理层
   - Edge 列表查询 `/api/edges` 已实现
   - 单 Edge 最新报告 `/api/edges/{edge_id}/reports/latest` 已实现
+  - 单 Edge 历史报告 `/api/edges/{edge_id}/reports` 已实现
   - 单 Edge 分析触发 `/api/edges/{edge_id}/analyze` 已实现
   - 全网综合研判 `/api/network/analyze` 已实现
-  - 前端组件已模块化重构
+  - 前端已支持历史报告切换与中心上报状态展示
 
-- [ ] **WP-5 文档与 harness 收口**
-  - 设计、接口、部署、agent 路由一致化
-  - 清除旧名称与旧拓扑残留
-  - 补充端云契约自动化 schema 检查
+- [x] **WP-5 文档与 harness 收口**
+  - `.claude/agents/` 已补齐并同步 `console + edge-agent + central-agent` roster
+  - `docs/design-docs/*` 与 `docs/references/*` 已作为当前事实来源收口
+  - console 历史报告与中心上报展示能力已同步到计划与 API 文档
+  - 剩余治理项已转入技术债：schema 漂移自动检查、多 Edge 实际联动验证
 
 ---
 

@@ -180,6 +180,52 @@ edge-agent -> central-agent
 }
 ```
 
+#### GET `/api/edges/{edge_id}/reports`
+
+返回单个 Edge 的历史归档报告列表。返回值为数组，元素字段形状与 `/api/edges/{edge_id}/reports/latest` 一致，用于前端归档页历史切换。
+
+```json
+[
+  {
+    "edge_id": "edge1",
+    "report_id": "report-002",
+    "generated_at": "2026-04-08T10:00:00Z",
+    "summary": {
+      "headline": "2 threats detected on edge1",
+      "risk_level": "medium",
+      "threat_count": 2,
+      "bandwidth_saved_percent": 78.5
+    },
+    "report": {
+      "meta": {
+        "task_id": "report-002",
+        "timestamp": "2026-04-08T10:00:00Z",
+        "agent_version": "edge-agent",
+        "processing_time_ms": 0,
+        "central_reporting": {
+          "status": "stored",
+          "report_id": "report-002"
+        }
+      },
+      "statistics": {
+        "total_packets": 0,
+        "total_flows": 2,
+        "normal_flows_dropped": 0,
+        "anomaly_flows_detected": 2,
+        "svm_filter_rate": "0.0%",
+        "bandwidth_reduction": "78.5%"
+      },
+      "threats": [],
+      "metrics": {
+        "original_pcap_size_bytes": 0,
+        "json_output_size_bytes": 0,
+        "bandwidth_saved_percent": 78.5
+      }
+    }
+  }
+]
+```
+
 #### POST `/api/edges/{edge_id}/analyze`
 
 手动触发单 Edge 中心分析；控制台返回值仍适配为 `EdgeLatestReport` 风格的展示对象。

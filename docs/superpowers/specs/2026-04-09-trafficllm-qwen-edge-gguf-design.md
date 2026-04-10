@@ -1,3 +1,12 @@
+---
+name: trafficllm-qwen-edge-gguf-design
+description: TrafficLLM-master 下 Qwen3.5-0.8B LoRA 训练到 GGUF Q4_K_M 交付链路设计
+type: project
+status: active
+updated_at: 2026-04-10
+reason_active: 当前仓库仍未落地 qwen_pipeline，训练流水线仍属待实现范围
+---
+
 # TrafficLLM Qwen Edge GGUF Design
 
 ## Goal

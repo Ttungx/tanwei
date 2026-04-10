@@ -202,7 +202,6 @@ Response: { "threats": [...], "metrics": {...} }
 ├── central-agent/              # 中心智能体归档与分析
 ├── console/                    # 统一控制台与管理员入口
 │
-├── shared/                     # 共享模块 (日志配置等)
 ├── TrafficLLM-master/          # TrafficLLM 依赖 (外部)
 ├── qwen3.5-0.8b/               # 边缘基座模型 (外部)
 └── data/                       # 数据与训练集
@@ -238,7 +237,7 @@ docker-compose up --build -d
 | `llm-service` | 完成 | 边缘本地 LLM 推理服务可用 |
 | `svm-filter-service` | 完成 | 32 维特征在线过滤可用 |
 | `edge-agent` | 完成 | 五阶段检测流与边缘闭环可用 |
-| `central-agent` | 进行中 | 中心归档与分析接口正在重构 |
+| `central-agent` | 完成 | 归档、单 Edge 分析、全网分析与 SQLite 持久化已可用 |
 | `console` | 完成 | 控制台前后端迁移到新命名 |
 | 端到端联调 | 进行中 | 第一阶段不要求真实多 Edge 联调 |
 
