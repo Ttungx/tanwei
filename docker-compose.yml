@@ -15,7 +15,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ../../qwen3.5-0.8b:/models:ro
+      - ./qwen3.5-0.8b:/models:ro
     command: >
       --model /models/Qwen3.5-0.8B-Q4_K_M.gguf
       --host 0.0.0.0
@@ -121,39 +121,7 @@ services:
       retries: 3
 
   # ============================================================
-  # 容器 4：中心智能体 (central-agent)
-  # 工程定位：消费边缘侧结构化情报，提供中心归档与分析接口
-  # 技术栈：Python 3.10-slim + FastAPI
-  # ============================================================
-  central-agent:
-    build:
-      context: .
-      dockerfile: central-agent/Dockerfile
-    container_name: tanwei-central-agent
-    env_file:
-      - ../../.env
-    ports:
-      - "8003:8003"
-    environment:
-      - LOG_LEVEL=INFO
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
-    networks:
-      - tanwei-internal
-    restart: "no"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 10s
-      retries: 3
-
-  # ============================================================
-  # 容器 5：统一控制台 (console)
+  # 容器 4：统一控制台 (console)
   # 工程定位：统一管理员控制台，管理 edge-agent 与后续 central-agent
   # 技术栈：React 18 (前端) + FastAPI (后端代理)
   # ============================================================
