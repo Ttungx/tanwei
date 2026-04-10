@@ -385,6 +385,11 @@ async def get_latest_edge_report(edge_id: str) -> Dict[str, Any]:
     return central_agent_client.get_latest_report(edge_id)
 
 
+@app.get("/api/edges/{edge_id}/reports")
+async def get_edge_reports(edge_id: str) -> List[Dict[str, Any]]:
+    return central_agent_client.list_edge_reports(edge_id)
+
+
 @app.post("/api/edges/{edge_id}/analyze")
 async def analyze_edge(edge_id: str) -> Dict[str, Any]:
     return central_agent_client.analyze_edge(edge_id)

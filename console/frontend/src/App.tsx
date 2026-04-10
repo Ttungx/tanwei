@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getDemoSamples,
   getEdges,
+  getEdgeReports,
   getLatestEdgeReport,
   getTaskResult,
   getTaskStatus,
@@ -24,6 +25,7 @@ import { buildConsoleViewModel, buildOverviewViewModel, type AppState } from './
 import type {
   DemoSample,
   DetectionResult,
+  EdgeReportHistoryItem,
   EdgeLatestReport,
   EdgeSummary,
   NetworkAnalysisResult,
@@ -71,6 +73,25 @@ function formatTimestamp(value: string | null): string {
   }).format(date)
 }
 
+function mergeReportHistory(
+  latestReport: EdgeLatestReport | null,
+  historyReports: EdgeReportHistoryItem[],
+): EdgeReportHistoryItem[] {
+  const reportMap = new Map<string, EdgeReportHistoryItem>()
+
+  if (latestReport) {
+    reportMap.set(latestReport.report_id, latestReport)
+  }
+
+  for (const report of historyReports) {
+    reportMap.set(report.report_id, report)
+  }
+
+  return Array.from(reportMap.values()).sort(
+    (left, right) => new Date(right.generated_at).getTime() - new Date(left.generated_at).getTime(),
+  )
+}
+
 export default function App() {
   const [section, setSection] = useState<AppSection>('overview')
   const [sampleSource, setSampleSource] = useState<SampleSource>('upload')
@@ -92,8 +113,12 @@ export default function App() {
   const [edgesError, setEdgesError] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [selectedEdgeReport, setSelectedEdgeReport] = useState<EdgeLatestReport | null>(null)
+  const [selectedEdgeReportId, setSelectedEdgeReportId] = useState<string | null>(null)
+  const [edgeReports, setEdgeReports] = useState<EdgeReportHistoryItem[]>([])
   const [edgeReportLoading, setEdgeReportLoading] = useState(false)
   const [edgeReportError, setEdgeReportError] = useState<string | null>(null)
+  const [edgeReportsLoading, setEdgeReportsLoading] = useState(false)
+  const [edgeReportsError, setEdgeReportsError] = useState<string | null>(null)
   const [edgeAnalyzeBusy, setEdgeAnalyzeBusy] = useState(false)
   const [networkAnalysis, setNetworkAnalysis] = useState<NetworkAnalysisResult | null>(null)
   const [networkAnalyzeBusy, setNetworkAnalyzeBusy] = useState(false)
@@ -299,23 +324,69 @@ export default function App() {
   useEffect(() => {
     if (!selectedEdgeId) {
       setSelectedEdgeReport(null)
+      setSelectedEdgeReportId(null)
+      setEdgeReports([])
       return
     }
 
+    let cancelled = false
+
     setEdgeReportLoading(true)
     setEdgeReportError(null)
+    setEdgeReportsLoading(true)
+    setEdgeReportsError(null)
+    setSelectedEdgeReport(null)
+    setSelectedEdgeReportId(null)
+    setEdgeReports([])
 
-    void getLatestEdgeReport(selectedEdgeId)
-      .then((report) => {
-        setSelectedEdgeReport(report)
-      })
-      .catch((loadError) => {
-        setSelectedEdgeReport(null)
-        setEdgeReportError(loadError instanceof Error ? loadError.message : '最新情报加载失败')
+    void Promise.allSettled([
+      getLatestEdgeReport(selectedEdgeId),
+      getEdgeReports(selectedEdgeId),
+    ])
+      .then(([latestResult, historyResult]) => {
+        if (cancelled) return
+
+        const latestReport =
+          latestResult.status === 'fulfilled' ? latestResult.value : null
+        const historyReports =
+          historyResult.status === 'fulfilled' ? historyResult.value : []
+        const mergedReports = mergeReportHistory(latestReport, historyReports)
+        const displayedReport = latestReport ?? mergedReports[0] ?? null
+
+        if (latestResult.status === 'rejected') {
+          setEdgeReportError(
+            latestResult.reason instanceof Error
+              ? latestResult.reason.message
+              : '最新情报加载失败',
+          )
+        } else {
+          setEdgeReportError(null)
+        }
+
+        if (historyResult.status === 'rejected') {
+          setEdgeReportsError(
+            historyResult.reason instanceof Error
+              ? historyResult.reason.message
+              : '历史报告加载失败',
+          )
+        } else {
+          setEdgeReportsError(null)
+        }
+
+        setEdgeReports(mergedReports)
+        setSelectedEdgeReport(displayedReport)
+        setSelectedEdgeReportId(displayedReport?.report_id ?? null)
       })
       .finally(() => {
-        setEdgeReportLoading(false)
+        if (!cancelled) {
+          setEdgeReportLoading(false)
+          setEdgeReportsLoading(false)
+        }
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [selectedEdgeId])
 
   useEffect(() => {
@@ -368,7 +439,25 @@ export default function App() {
 
     try {
       const report = await startEdgeAnalysis(selectedEdgeId)
+      let historyReports: EdgeReportHistoryItem[] = []
+
+      try {
+        historyReports = await getEdgeReports(selectedEdgeId)
+        setEdgeReportsError(null)
+      } catch (historyError) {
+        setEdgeReportsError(
+          historyError instanceof Error ? historyError.message : '历史报告加载失败',
+        )
+      }
+
+      const mergedReports = mergeReportHistory(
+        report,
+        historyReports.length > 0 ? historyReports : edgeReports,
+      )
+
       setSelectedEdgeReport(report)
+      setSelectedEdgeReportId(report.report_id)
+      setEdgeReports(mergedReports)
       setEdges((currentEdges) =>
         currentEdges.map((edge) =>
           edge.edge_id === selectedEdgeId
@@ -386,7 +475,7 @@ export default function App() {
     } finally {
       setEdgeAnalyzeBusy(false)
     }
-  }, [selectedEdgeId])
+  }, [edgeReports, selectedEdgeId])
 
   const handleNetworkAnalyze = useCallback(async () => {
     setNetworkAnalyzeBusy(true)
@@ -525,10 +614,15 @@ export default function App() {
                 </div>
                 {edgeReportLoading && <div className={styles.emptyState}>最新情报加载中...</div>}
                 {edgeReportError && <div className={styles.emptyState}>{edgeReportError}</div>}
+                {!edgeReportLoading && edgeReportsLoading && (
+                  <div className={styles.emptyState}>历史报告加载中...</div>
+                )}
+                {edgeReportsError && <div className={styles.emptyState}>{edgeReportsError}</div>}
                 {selectedEdgeReport && !edgeReportLoading && (
                   <div className={styles.reportSummary}>
                     <strong>{selectedEdgeReport.summary.headline}</strong>
                     <span>生成时间 {formatTimestamp(selectedEdgeReport.generated_at)}</span>
+                    <span>历史归档 {edgeReports.length}</span>
                     <span>
                       带宽压降 {selectedEdgeReport.summary.bandwidth_saved_percent.toFixed(1)}%
                     </span>
@@ -686,7 +780,19 @@ export default function App() {
                 </p>
               </div>
 
-              <ResultArchive result={result ?? selectedEdgeReport?.report ?? null} />
+              <ResultArchive
+                result={result ?? selectedEdgeReport?.report ?? null}
+                reportHistory={result ? [] : edgeReports}
+                selectedReportId={result ? null : selectedEdgeReportId}
+                reportHistoryLoading={!result && edgeReportsLoading}
+                reportHistoryError={!result ? edgeReportsError : null}
+                onSelectReport={(reportId) => {
+                  const report = edgeReports.find((item) => item.report_id === reportId)
+                  if (!report) return
+                  setSelectedEdgeReport(report)
+                  setSelectedEdgeReportId(reportId)
+                }}
+              />
             </section>
           )}
         </main>

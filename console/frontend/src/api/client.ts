@@ -1,6 +1,7 @@
 import type {
   DemoSample,
   DetectionResponse,
+  EdgeReportHistoryItem,
   DetectionResult,
   EdgeLatestReport,
   EdgeSummary,
@@ -89,6 +90,17 @@ export async function getLatestEdgeReport(edgeId: string): Promise<EdgeLatestRep
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Edge report unavailable' }))
     throw new Error(error.detail || 'Edge report unavailable')
+  }
+
+  return response.json()
+}
+
+export async function getEdgeReports(edgeId: string): Promise<EdgeReportHistoryItem[]> {
+  const response = await fetch(`${API_BASE}/edges/${edgeId}/reports`)
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Edge reports unavailable' }))
+    throw new Error(error.detail || 'Edge reports unavailable')
   }
 
   return response.json()

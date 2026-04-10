@@ -88,6 +88,23 @@ class CentralAgentClient:
             self.logger.warning("central-agent unavailable for latest report of %s, using fallback data: %s", edge_id, exc)
             return build_mock_latest_report(edge_id)
 
+    def list_edge_reports(self, edge_id: str) -> List[Dict[str, Any]]:
+        try:
+            payload = self._get(f"/api/v1/edges/{edge_id}/reports")
+            reports = payload.get("reports", []) if isinstance(payload, dict) else payload
+            return [
+                build_edge_latest_report(report_envelope)
+                for report_envelope in reports
+                if isinstance(report_envelope, dict)
+            ]
+        except requests.RequestException as exc:
+            self.logger.warning(
+                "central-agent unavailable for report history of %s, using fallback data: %s",
+                edge_id,
+                exc,
+            )
+            return build_mock_report_history(edge_id)
+
     def analyze_edge(self, edge_id: str) -> Dict[str, Any]:
         try:
             analysis = self._post(f"/api/v1/edges/{edge_id}/analyze")
@@ -219,6 +236,7 @@ def derive_risk_level(threat_count: int, explicit_level: Any = None) -> str:
 
 def build_detection_result_from_archive(report_envelope: Dict[str, Any]) -> Dict[str, Any]:
     report = clone_payload(report_envelope.get("report") or {})
+    report_meta = report.get("meta") or {}
     threats = report.get("threats") or []
     mapped_threats = []
 
@@ -294,6 +312,9 @@ def build_detection_result_from_archive(report_envelope: Dict[str, Any]) -> Dict
                 or "central-agent-archive"
             ),
             "processing_time_ms": processing_time_ms,
+            "central_reporting": clone_payload(report_meta.get("central_reporting"))
+            if isinstance(report_meta.get("central_reporting"), dict)
+            else None,
         },
         "statistics": {
             "total_packets": coerce_int(statistics.get("total_packets")),
@@ -464,6 +485,19 @@ def build_mock_latest_report(edge_id: str, triggered: bool = False) -> Dict[str,
         },
         "report": report,
     }
+
+
+def build_mock_report_history(edge_id: str) -> List[Dict[str, Any]]:
+    latest = build_mock_latest_report(edge_id)
+    older = build_mock_latest_report(edge_id)
+    older["report_id"] = f"{edge_id}-report-previous"
+    older["generated_at"] = (datetime.now(timezone.utc) - timedelta(hours=4)).replace(
+        microsecond=0
+    ).isoformat().replace("+00:00", "Z")
+    older["summary"]["headline"] = f"previous archived report for {edge_id}"
+    older["report"]["meta"]["task_id"] = f"{edge_id}-task-previous"
+    older["report"]["meta"]["timestamp"] = older["generated_at"]
+    return [latest, older]
 
 
 def build_mock_network_analysis() -> Dict[str, Any]:

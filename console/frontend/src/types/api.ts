@@ -6,6 +6,13 @@ export interface TaskStatus {
   message: string
 }
 
+export interface CentralReportingMeta {
+  status: string
+  central_url?: string
+  central_report_id?: string
+  error?: string
+}
+
 export type PipelineStage =
   | 'pending'
   | 'flow_reconstruction'
@@ -48,6 +55,7 @@ export interface DetectionResult {
     timestamp: string
     agent_version: string
     processing_time_ms: number
+    central_reporting?: CentralReportingMeta | null
   }
   statistics: {
     total_packets: number
@@ -104,6 +112,8 @@ export interface EdgeLatestReport {
   summary: EdgeReportSummary
   report: DetectionResult
 }
+
+export type EdgeReportHistoryItem = EdgeLatestReport
 
 export interface NetworkAnalysisSummary {
   edge_count: number

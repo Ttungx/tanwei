@@ -41,6 +41,7 @@
 .sizeCard strong,
 .summaryPill strong,
 .threatHeader strong,
+.historyCard strong,
 .tupleGrid strong,
 .emptyState strong,
 .emptyThreats strong {
@@ -51,6 +52,7 @@
 .metricCard,
 .sizeCard,
 .threatCard,
+.historyCard,
 .summarySection,
 .threatSection,
 .emptyState,
@@ -92,6 +94,7 @@
 .sizeCard span,
 .summaryPill span,
 .threatHeader span,
+.historyCard span,
 .tupleGrid span,
 .emptyState p,
 .emptyThreats p {
@@ -103,10 +106,28 @@
   gap: 12px;
 }
 
+.historyList {
+  display: grid;
+  gap: 12px;
+}
+
 .threatCard {
   display: grid;
   gap: 14px;
   padding: 16px;
+}
+
+.historyCard {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.historyCardActive {
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-secondary));
 }
 
 .tupleGrid div {

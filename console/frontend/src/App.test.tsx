@@ -10,6 +10,7 @@ vi.mock('./api/client', () => ({
   getDemoSamples: vi.fn(),
   startDemoDetection: vi.fn(),
   getEdges: vi.fn(),
+  getEdgeReports: vi.fn(),
   getLatestEdgeReport: vi.fn(),
   startEdgeAnalysis: vi.fn(),
   startNetworkAnalysis: vi.fn(),
@@ -31,27 +32,7 @@ afterEach(() => {
 })
 
 beforeEach(() => {
-  vi.mocked(client.getEdges).mockResolvedValue([
-    {
-      edge_id: 'edge1',
-      display_name: 'Edge 1',
-      status: 'online',
-      location: 'Singapore Rack A',
-      last_reported_at: '2026-04-07T08:00:00Z',
-      threat_count: 2,
-      risk_level: 'high',
-    },
-    {
-      edge_id: 'edge2',
-      display_name: 'Edge 2',
-      status: 'online',
-      location: 'Singapore Rack B',
-      last_reported_at: '2026-04-07T08:02:00Z',
-      threat_count: 0,
-      risk_level: 'low',
-    },
-  ])
-  vi.mocked(client.getLatestEdgeReport).mockResolvedValue({
+  const latestEdgeReport = {
     edge_id: 'edge1',
     report_id: 'edge1-report-001',
     generated_at: '2026-04-07T08:00:00Z',
@@ -67,6 +48,11 @@ beforeEach(() => {
         timestamp: '2026-04-07T08:00:00Z',
         agent_version: 'edge-agent-v1',
         processing_time_ms: 4200,
+        central_reporting: {
+          status: 'uploaded',
+          central_url: 'http://central-agent:8003',
+          central_report_id: 'edge1-report-001',
+        },
       },
       statistics: {
         total_packets: 4096,
@@ -111,7 +97,67 @@ beforeEach(() => {
         bandwidth_saved_percent: 87.5,
       },
     },
-  })
+  }
+  const previousEdgeReport = {
+    edge_id: 'edge1',
+    report_id: 'edge1-report-000',
+    generated_at: '2026-04-07T06:30:00Z',
+    summary: {
+      headline: '1 threat detected on edge1',
+      risk_level: 'medium',
+      threat_count: 1,
+      bandwidth_saved_percent: 82.1,
+    },
+    report: {
+      meta: {
+        task_id: 'edge1-task-000',
+        timestamp: '2026-04-07T06:30:00Z',
+        agent_version: 'edge-agent-v1',
+        processing_time_ms: 3600,
+        central_reporting: {
+          status: 'failed',
+          error: 'central-agent timeout',
+        },
+      },
+      statistics: {
+        total_packets: 2048,
+        total_flows: 64,
+        normal_flows_dropped: 63,
+        anomaly_flows_detected: 1,
+        svm_filter_rate: '98.4%',
+        bandwidth_reduction: '82.1%',
+      },
+      threats: [],
+      metrics: {
+        original_pcap_size_bytes: 2_097_152,
+        json_output_size_bytes: 375_390,
+        bandwidth_saved_percent: 82.1,
+      },
+    },
+  }
+
+  vi.mocked(client.getEdges).mockResolvedValue([
+    {
+      edge_id: 'edge1',
+      display_name: 'Edge 1',
+      status: 'online',
+      location: 'Singapore Rack A',
+      last_reported_at: '2026-04-07T08:00:00Z',
+      threat_count: 2,
+      risk_level: 'high',
+    },
+    {
+      edge_id: 'edge2',
+      display_name: 'Edge 2',
+      status: 'online',
+      location: 'Singapore Rack B',
+      last_reported_at: '2026-04-07T08:02:00Z',
+      threat_count: 0,
+      risk_level: 'low',
+    },
+  ])
+  vi.mocked(client.getLatestEdgeReport).mockResolvedValue(latestEdgeReport)
+  vi.mocked(client.getEdgeReports).mockResolvedValue([latestEdgeReport, previousEdgeReport])
   vi.mocked(client.startEdgeAnalysis).mockImplementation(async (edgeId) => ({
     edge_id: edgeId,
     report_id: `${edgeId}-report-refresh`,
@@ -181,6 +227,7 @@ describe('App', () => {
     await waitFor(() => {
       expect(client.getEdges).toHaveBeenCalledTimes(1)
       expect(client.getLatestEdgeReport).toHaveBeenCalledWith('edge1')
+      expect(client.getEdgeReports).toHaveBeenCalledWith('edge1')
     })
 
     expect(screen.getAllByText('Edge 1').length).toBeGreaterThan(0)
@@ -201,6 +248,30 @@ describe('App', () => {
     })
 
     expect(screen.getByText('Escalate edge1 for human review')).toBeInTheDocument()
+  })
+
+  it('shows central reporting details and supports switching edge report history', async () => {
+    render(<App />)
+
+    await waitFor(() => {
+      expect(client.getEdgeReports).toHaveBeenCalledWith('edge1')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '威胁归档' }))
+
+    expect(screen.getByText('中心上报')).toBeInTheDocument()
+    expect(screen.getByText('uploaded')).toBeInTheDocument()
+    expect(screen.getAllByText('edge1-report-001').length).toBeGreaterThan(0)
+    expect(screen.getByText('历史报告')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /edge1-report-000/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('edge1-task-000')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('failed')).toBeInTheDocument()
+    expect(screen.getByText('central-agent timeout')).toBeInTheDocument()
   })
 
   it('loads demo samples and supports the demo workspace source', async () => {

@@ -1,12 +1,24 @@
-import type { DetectionResult } from '../types/api'
+import type { DetectionResult, EdgeReportHistoryItem } from '../types/api'
 import { formatBytes } from '../lib/view-models'
 import styles from './ResultArchive.module.css'
 
 type ResultArchiveProps = {
   result: DetectionResult | null
+  reportHistory?: EdgeReportHistoryItem[]
+  selectedReportId?: string | null
+  reportHistoryLoading?: boolean
+  reportHistoryError?: string | null
+  onSelectReport?: (reportId: string) => void
 }
 
-export function ResultArchive({ result }: ResultArchiveProps) {
+export function ResultArchive({
+  result,
+  reportHistory = [],
+  selectedReportId = null,
+  reportHistoryLoading = false,
+  reportHistoryError = null,
+  onSelectReport,
+}: ResultArchiveProps) {
   if (!result) {
     return (
       <section className={styles.card}>
@@ -28,6 +40,7 @@ export function ResultArchive({ result }: ResultArchiveProps) {
   const threatCount = result.statistics.anomaly_flows_detected
   const hasThreatDetails = result.threats.length > 0
   const archiveStatus = threatCount === 0 ? '已归档' : '待复核'
+  const centralReporting = result.meta.central_reporting ?? null
 
   return (
     <section className={styles.card}>
@@ -78,6 +91,71 @@ export function ResultArchive({ result }: ResultArchiveProps) {
           <strong>{(result.meta.processing_time_ms / 1000).toFixed(2)}s</strong>
         </div>
       </div>
+
+      <section className={styles.summarySection} aria-label="中心上报">
+        <div className={styles.sectionHeading}>
+          <span className={styles.sectionEyebrow}>CENTRAL REPORTING</span>
+          <h3>中心上报</h3>
+        </div>
+
+        <div className={styles.metrics}>
+          <div className={styles.metricCard}>
+            <span>状态</span>
+            <strong>{centralReporting?.status ?? '未提供上送状态'}</strong>
+          </div>
+          <div className={styles.metricCard}>
+            <span>中心报告 ID</span>
+            <strong>{centralReporting?.central_report_id ?? '暂无'}</strong>
+          </div>
+          <div className={styles.metricCard}>
+            <span>目标地址</span>
+            <strong>{centralReporting?.central_url ?? '暂无'}</strong>
+          </div>
+        </div>
+
+        {centralReporting?.error && (
+          <div className={styles.emptyState}>
+            <strong>上报异常</strong>
+            <p>{centralReporting.error}</p>
+          </div>
+        )}
+      </section>
+
+      <section className={styles.summarySection} aria-label="历史报告">
+        <div className={styles.sectionHeading}>
+          <span className={styles.sectionEyebrow}>REPORT HISTORY</span>
+          <h3>历史报告</h3>
+        </div>
+
+        {reportHistoryLoading && <div className={styles.emptyState}>历史报告加载中...</div>}
+        {reportHistoryError && <div className={styles.emptyState}>{reportHistoryError}</div>}
+        {!reportHistoryLoading && !reportHistoryError && reportHistory.length === 0 && (
+          <div className={styles.emptyState}>
+            <strong>暂无历史报告</strong>
+            <p>当前 edge 还没有可切换的归档记录。</p>
+          </div>
+        )}
+        {!reportHistoryLoading && !reportHistoryError && reportHistory.length > 0 && (
+          <div className={styles.historyList}>
+            {reportHistory.map((report) => {
+              const active = report.report_id === selectedReportId
+              return (
+                <button
+                  key={report.report_id}
+                  type="button"
+                  className={`${styles.historyCard} ${active ? styles.historyCardActive : ''}`}
+                  onClick={() => onSelectReport?.(report.report_id)}
+                >
+                  <strong>{report.report_id}</strong>
+                  <span>{report.summary.headline}</span>
+                  <span>风险 {report.summary.risk_level}</span>
+                  <span>威胁 {report.summary.threat_count}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
       <div className={styles.sizeGrid}>
         <div className={styles.sizeCard}>
