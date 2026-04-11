@@ -1,6 +1,6 @@
 # Tanwei Agents Index
 
-> Last synced: 2026-04-10  
+> Last synced: 2026-04-11  
 > Scope: `console + edge-agent + central-agent` repository
 
 ## 1. 当前项目变更基线
@@ -8,8 +8,8 @@
 - 第一阶段服务实现已打通：`console`、`edge-agent`、`central-agent` 均可独立运行并协同。
 - `edge-agent` 检测完成后会写入 `meta.central_reporting`，上报失败不阻断边缘闭环。
 - `console` 已支持单 Edge 历史报告浏览（`GET /api/edges/{edge_id}/reports`）与中心上报状态展示。
+- `central-agent/tests/test_contract_governance.py` 已加入端云契约自动校验，覆盖真实 mapper 输出与 forbidden 字段红线。
 - 当前剩余治理主线：
-  - `TD-010` 端云契约 schema 漂移自动检查
   - `TD-012` 多 Edge 实际联动与批量校验
 
 ## 2. 默认协作闭环
@@ -49,7 +49,7 @@
 
 - 第一阶段服务实现已完成，当前主责任转向治理与防漂移：
   - 文档与计划生命周期：`doc-gardener`
-  - 契约自动校验建设：`central-agent-engineer` + `edge-agent-engineer`
+  - 契约自动校验维护：`central-agent-engineer` + `edge-agent-engineer`
   - 独立验收：`evaluator-agent`
 
 ## 5. 维护触发条件

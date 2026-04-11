@@ -51,7 +51,7 @@ type: project
   - `.claude/agents/` 已补齐并同步 `console + edge-agent + central-agent` roster
   - `docs/design-docs/*` 与 `docs/references/*` 已作为当前事实来源收口
   - console 历史报告与中心上报展示能力已同步到计划与 API 文档
-  - 剩余治理项已转入技术债：schema 漂移自动检查、多 Edge 实际联动验证
+  - 端云契约自动校验已补齐，剩余治理项已收敛到多 Edge 实际联动验证
 
 ---
 
