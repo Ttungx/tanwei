@@ -1,6 +1,6 @@
 ---
 name: trafficllm-qwen-edge-gguf-design
-description: TrafficLLM-master 下 Qwen3.5-0.8B LoRA 训练到 GGUF Q4_K_M 交付链路设计
+description: 除非人类强调执行改设计文档，否则不用理会该文档。TrafficLLM-master 下 Qwen3.5-0.8B LoRA 训练到 GGUF Q4_K_M 交付链路设计
 type: project
 status: active
 updated_at: 2026-04-10

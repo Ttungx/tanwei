@@ -10,6 +10,21 @@
 
 ---
 
+## File Structure
+
+| File | Responsibility | Action |
+| --- | --- | --- |
+| `docs/exec-plans/active-plan.md` | Current milestone truth source | Verify first-phase closeout state and final backlog boundary |
+| `docs/exec-plans/tech-debt.md` | Remaining debt register | Keep only unresolved governance items until tests land, then leave only multi-edge follow-up |
+| `.claude/agents/agents.md` | Agent roster and ownership truth | Confirm docs/harness governance ownership matches current milestone state |
+| `README.md` | Repo entrypoint status snapshot | Confirm `central-agent` is described as shipped, not in-progress |
+| `docs/references/api_specs.md` | API and contract truth source | Confirm history-report endpoint is documented for console consumers |
+| `central-agent/tests/test_contract_governance.py` | Cross-service contract drift coverage | Add new governance test module |
+| `central-agent/tests/test_central_agent_api.py` | Central-agent contract enforcement | Keep raw-payload rejection under central-agent ownership |
+| `edge-agent/tests/test_report_mapper.py` | Edge payload mapping truth | Assert mapper output still matches current central contract |
+
+---
+
 ### Task 1: Sync Plan Status, Harness Docs, And API Truth
 
 **Files:**
@@ -110,12 +125,16 @@ Expected:
 - `api_specs.md` contains the history endpoint
 - `active-plan.md` shows `WP-5` as completed
 
+If the repo is already in the expected state, record that Task 1 was verification-only on this branch and continue without inventing no-op edits.
+
 - [ ] **Step 4: Commit the doc/harness sync**
 
 ```bash
 git add docs/exec-plans/active-plan.md docs/exec-plans/tech-debt.md .claude/agents/agents.md README.md docs/references/api_specs.md
 git commit -m "docs: sync first-phase status and harness truth"
 ```
+
+If Step 3 showed the docs were already aligned, skip the commit and note in the execution log that Task 1 required no code changes on this branch.
 
 ### Task 2: Add Cross-Service Contract Drift Coverage
 
@@ -230,7 +249,19 @@ Apply these exact changes:
 
 ```python
 # central-agent/tests/test_contract_governance.py
+import sys
+import unittest
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
+
+CENTRAL_DIR = Path(__file__).resolve().parents[1]
+EDGE_DIR = CENTRAL_DIR.parents[0] / "edge-agent"
+
+if str(CENTRAL_DIR) not in sys.path:
+    sys.path.insert(0, str(CENTRAL_DIR))
+
+from app.models import EdgeReportIn
+from app.security import DENIED_INTEL_FIELDS
 
 EDGE_REPORT_MAPPER = EDGE_DIR / "app" / "report_mapper.py"
 spec = spec_from_file_location("edge_report_mapper", EDGE_REPORT_MAPPER)
@@ -238,25 +269,170 @@ module = module_from_spec(spec)
 assert spec and spec.loader
 spec.loader.exec_module(module)
 build_edge_report_payload = module.build_edge_report_payload
+
+
+class ContractGovernanceTests(unittest.TestCase):
+    def test_edge_report_mapper_output_validates_against_central_contract(self):
+        edge_result = {
+            "meta": {
+                "task_id": "task-contract-001",
+                "timestamp": "2026-04-10T10:00:00+00:00",
+                "agent_version": "edge-agent-v1",
+                "processing_time_ms": 980,
+            },
+            "statistics": {
+                "total_packets": 64,
+                "total_flows": 6,
+                "normal_flows_dropped": 5,
+                "anomaly_flows_detected": 1,
+                "svm_filter_rate": "83.3%",
+                "bandwidth_reduction": "78.5%",
+            },
+            "threats": [
+                {
+                    "id": "threat-contract-001",
+                    "five_tuple": {
+                        "src_ip": "10.0.0.5",
+                        "dst_ip": "8.8.8.8",
+                        "src_port": 50123,
+                        "dst_port": 443,
+                        "protocol": "TCP",
+                    },
+                    "classification": {
+                        "primary_label": "Botnet",
+                        "secondary_label": "Beaconing",
+                        "confidence": 0.93,
+                        "model": "Qwen3.5-0.8B",
+                    },
+                    "flow_metadata": {
+                        "packet_count": 8,
+                        "byte_count": 4120,
+                    },
+                    "token_info": {
+                        "token_count": 128,
+                        "truncated": True,
+                    },
+                }
+            ],
+            "metrics": {
+                "original_pcap_size_bytes": 4096,
+                "json_output_size_bytes": 880,
+                "bandwidth_saved_percent": 78.5,
+            },
+        }
+
+        payload = build_edge_report_payload(
+            result=edge_result,
+            edge_id="edge1",
+            max_time_window=60,
+            max_packet_count=10,
+            max_token_length=690,
+        )
+
+        model = EdgeReportIn(**payload)
+        self.assertEqual(model.edge_id, "edge1")
+        self.assertEqual(model.report_id, "task-contract-001")
+        self.assertEqual(model.intel.schema_version, "edge-intel/v1")
+
+    def test_forbidden_field_set_still_blocks_payload_like_keys(self):
+        self.assertIn("payloadhex", DENIED_INTEL_FIELDS)
+        self.assertIn("rawpcap", DENIED_INTEL_FIELDS)
+        self.assertIn("packethex", DENIED_INTEL_FIELDS)
 ```
 
 ```python
 # edge-agent/tests/test_report_mapper.py
 class ReportMapperTests(unittest.TestCase):
-    ...
     def test_build_edge_report_payload_matches_current_central_contract(self):
-        ...
+        result = {
+            "meta": {
+                "task_id": "task-123",
+                "timestamp": "2026-04-08T09:30:00+00:00",
+                "agent_version": "1.0.0",
+                "processing_time_ms": 812,
+            },
+            "statistics": {
+                "total_packets": 128,
+                "total_flows": 12,
+                "normal_flows_dropped": 10,
+                "anomaly_flows_detected": 2,
+                "svm_filter_rate": "83.33%",
+                "bandwidth_reduction": "81.4%",
+            },
+            "threats": [
+                {
+                    "id": "threat-001",
+                    "five_tuple": {
+                        "src_ip": "10.0.0.5",
+                        "dst_ip": "8.8.8.8",
+                        "src_port": 50123,
+                        "dst_port": 443,
+                        "protocol": "TCP",
+                    },
+                    "classification": {
+                        "primary_label": "Botnet",
+                        "secondary_label": "C2 Beaconing",
+                        "confidence": "0.91",
+                        "model": "Qwen3.5-0.8B",
+                    },
+                    "flow_metadata": {
+                        "packet_count": 8,
+                        "byte_count": 4120,
+                    },
+                    "token_info": {
+                        "token_count": 128,
+                        "truncated": True,
+                    },
+                }
+            ],
+            "metrics": {
+                "original_pcap_size_bytes": 4096,
+                "json_output_size_bytes": 762,
+                "bandwidth_saved_percent": 81.4,
+            },
+        }
+
+        payload = build_edge_report_payload(
+            result=result,
+            edge_id="edge1",
+            max_time_window=60,
+            max_packet_count=10,
+            max_token_length=690,
+        )
+
+        self.assertEqual(payload["edge_id"], "edge1")
+        self.assertEqual(payload["report_id"], "task-123")
+        self.assertEqual(payload["source"], "edge-agent")
         self.assertEqual(payload["intel"]["schema_version"], "edge-intel/v1")
+        self.assertEqual(payload["intel"]["summary"]["threat_count"], 2)
+        self.assertEqual(payload["intel"]["summary"]["risk_level"], "medium")
+        self.assertEqual(payload["intel"]["metrics"]["bandwidth_saved_percent"], 81.4)
+        self.assertEqual(payload["intel"]["threats"][0]["threat_id"], "threat-001")
+        self.assertEqual(payload["intel"]["threats"][0]["confidence"], 0.91)
+        self.assertEqual(
+            payload["intel"]["threats"][0]["evidence"]["edge_classification"]["primary_label"],
+            "Botnet",
+        )
+        self.assertEqual(
+            payload["intel"]["context"]["analysis_constraints"],
+            {
+                "max_time_window_s": 60,
+                "max_packet_count": 10,
+                "max_token_length": 690,
+            },
+        )
+        self._assert_no_forbidden_fields(payload)
 ```
 
 ```python
 # central-agent/tests/test_central_agent_api.py
-def test_create_report_rejects_raw_payload_like_fields(self):
-    payload = build_report_payload("edge1", "report-raw")
-    payload["intel"]["context"]["payload_hex"] = "deadbeef"
+class CentralAgentApiTests(unittest.TestCase):
+    def test_create_report_rejects_raw_payload_like_fields(self):
+        payload = build_report_payload("edge1", "report-raw")
+        payload["intel"]["context"]["payload_hex"] = "deadbeef"
 
-    with self.assertRaises(ValueError):
-        self.main.EdgeReportIn(**payload)
+        with self.assertRaises(ValueError):
+            self.main.EdgeReportIn(**payload)
 ```
 
 The intent is:
@@ -311,3 +487,40 @@ Keep only this unresolved backlog in `docs/exec-plans/tech-debt.md`:
 ```
 
 That boundary matters because multi-edge integration is a new feature plan, not part of first-phase cleanup.
+
+- [ ] **Step 3: Commit the backlog boundary cleanup**
+
+If `docs/exec-plans/tech-debt.md` changed because `TD-010` was cleared, commit it together with any final `active-plan.md` adjustment. If Task 1 already left the docs aligned and Task 3 causes no diff, explicitly record that no final doc commit was needed.
+
+```bash
+git add docs/exec-plans/active-plan.md docs/exec-plans/tech-debt.md
+git commit -m "docs: close first-phase governance cleanup"
+```
+
+- [ ] **Step 4: Verify final diff matches the intended scope**
+
+Run:
+
+```bash
+git diff --stat
+```
+
+Expected:
+- only governance-test files and any intentionally updated plan/debt docs are listed
+- no unrelated service files changed
+
+## Self-Review
+
+- Placeholder scan: remove every unfinished marker or implied "fill this in later" instruction before execution starts.
+- Repo reality check: if Task 1 doc truth is already aligned on the working branch, treat it as verification-only rather than forcing churn.
+- Boundary check: after Task 2 lands, `TD-010` should be removed from unresolved debt and `TD-012` should remain as the only open follow-up in this cleanup plan.
+
+## Execution Handoff
+
+Plan complete and saved to `docs/superpowers/plans/2026-04-10-docs-harness-contract-governance.md`. Two execution options:
+
+**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
+
+**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
+
+Which approach?
