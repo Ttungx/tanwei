@@ -11,6 +11,9 @@ services:
     build:
       context: ./llm-service
       dockerfile: Dockerfile
+      args:
+        - LLAMA_CPP_VERSION=${LLAMA_CPP_VERSION:-b4000}
+    image: tanwei-llm-service:latest
     container_name: tanwei-llm-service
     ports:
       - "8080:8080"
@@ -23,22 +26,21 @@ services:
       --ctx-size 2048
       --n-gpu-layers 0
       --threads 2
+      --batch-size 512
+      --n-keep 0
       --memory-f32 0
     deploy:
       resources:
         limits:
-          memory: 1G
+          cpus: "2"
+          memory: 1536M
         reservations:
-          memory: 512M
+          cpus: "1"
+          memory: 768M
     networks:
       - tanwei-internal
     restart: "no"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 5
+    # 使用 Dockerfile 中定义的 HEALTHCHECK（healthcheck.sh 脚本）
 
   # ============================================================
   # 容器 2：前置轻量级过滤服务 (svm-filter-service)
